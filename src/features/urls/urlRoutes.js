@@ -1,5 +1,12 @@
 const express = require("express");
 const repository = require("./urlRepository");
+const {
+  buildShortUrl,
+  normalizeOriginalUrl,
+  summarizeUrl,
+  validateShortCode,
+} = require("./urlSecurity");
+const { publicBaseUrl } = require("../../config");
 
 const router = express.Router();
 
@@ -8,26 +15,22 @@ router.post("/shorten", async (req, res, next) => {
 
   try {
     const { originalUrl } = req.body;
-    logger.start("Starting shorten flow", { originalUrl });
-
-    if (!originalUrl) {
-      logger.warn("Request validation failed", { reason: "originalUrl is required" });
-      return res.status(400).json({ error: "originalUrl is required" });
-    }
+    logger.start("Starting shorten flow", {
+      hasOriginalUrl: Boolean(originalUrl),
+    });
 
     let parsedUrl;
 
     try {
-      parsedUrl = new URL(originalUrl);
-    } catch {
+      parsedUrl = normalizeOriginalUrl(originalUrl);
+    } catch (error) {
       logger.warn("Request validation failed", {
-        reason: "originalUrl must be a valid URL",
-        originalUrl,
+        message: error.message,
       });
-      return res.status(400).json({ error: "originalUrl must be a valid URL" });
+      return res.status(error.statusCode || 400).json({ error: error.message });
     }
 
-    logger.step("Normalized input URL", { normalizedUrl: parsedUrl.toString() });
+    logger.step("Validated input URL", summarizeUrl(parsedUrl));
 
     const url = await repository.createShortUrl(
       parsedUrl.toString(),
@@ -39,7 +42,7 @@ router.post("/shorten", async (req, res, next) => {
     return res.status(201).json({
       code: url.code,
       originalUrl: url.originalUrl,
-      shortUrl: `${req.protocol}://${req.get("host")}/${url.code}`,
+      shortUrl: buildShortUrl(publicBaseUrl, url.code),
     });
   } catch (error) {
     return next(error);
@@ -51,6 +54,13 @@ router.get("/:code", async (req, res, next) => {
 
   try {
     logger.start("Starting redirect lookup", { code: req.params.code });
+
+    if (!validateShortCode(req.params.code)) {
+      logger.warn("Short code validation failed", {
+        code: req.params.code,
+      });
+      return res.status(400).json({ error: "Short code format is invalid" });
+    }
 
     const url = await repository.getUrlByCode(req.params.code, req.redisClient, logger);
 

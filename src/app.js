@@ -5,7 +5,7 @@ const { createFlowLogger } = require("./logging/logger");
 
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: "10kb" }));
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true });
@@ -14,7 +14,7 @@ app.get("/health", (_req, res) => {
 app.use((req, res, next) => {
   req.logger = createFlowLogger("HTTP");
   req.logger.start("Incoming request", {
-    body: req.body,
+    bodyKeys: req.body && typeof req.body === "object" ? Object.keys(req.body) : [],
     method: req.method,
     path: req.originalUrl,
   });
@@ -51,8 +51,12 @@ app.use((error, req, res, _next) => {
   req.logger.error("Unhandled application error", {
     code: error.code,
     message: error.message,
-    stack: error.stack,
+    statusCode: error.statusCode,
   });
+
+  if (error.statusCode) {
+    return res.status(error.statusCode).json({ error: error.message });
+  }
 
   if (error.code === "23505") {
     return res.status(409).json({ error: "Resource already exists" });

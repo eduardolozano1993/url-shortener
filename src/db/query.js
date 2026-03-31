@@ -7,7 +7,7 @@ function logQuery(logger, target, text, params) {
   }
 
   logger.step(`Querying ${target}`, {
-    params,
+    parameterCount: Array.isArray(params) ? params.length : 0,
     sql: text.replace(/\s+/g, " ").trim(),
   });
 }

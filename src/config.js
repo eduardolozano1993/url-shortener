@@ -2,8 +2,14 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
+const port = Number(process.env.PORT || 4000);
+const publicBaseUrl = new URL(
+  process.env.PUBLIC_BASE_URL || `http://localhost:${port}/`,
+).toString();
+
 module.exports = {
-  port: Number(process.env.PORT || 4000),
+  port,
+  publicBaseUrl,
   databaseUrl: process.env.DATABASE_URL,
   primaryDbHost: process.env.PGHOST || "localhost",
   primaryDbPort: Number(process.env.PGPORT || 5432),

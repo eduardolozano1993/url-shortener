@@ -34,7 +34,6 @@ async function getCachedUrl(redisClient, code, logger) {
     logger.success("Redis cache hit", {
       code,
       key,
-      value: JSON.parse(cachedValue),
     });
   }
 
@@ -59,7 +58,6 @@ async function cacheUrl(redisClient, url, logger) {
     logger.step("Writing value to Redis", {
       key,
       ttlSeconds: redisTtlSeconds,
-      value: url,
     });
   }
 

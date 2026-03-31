@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const db = require("../../db/query");
 const { cacheUrl, getCachedUrl } = require("./urlCache");
+const { summarizeUrl } = require("./urlSecurity");
 
 const BASE62_ALPHABET =
   "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -31,7 +32,7 @@ async function createShortUrl(originalUrl, redisClient, logger) {
   const hashCode = generateHashCode(originalUrl);
   logger.step("Generated deterministic hash code", {
     code: hashCode,
-    originalUrl,
+    url: summarizeUrl(new URL(originalUrl)),
   });
 
   try {
@@ -59,7 +60,7 @@ async function createShortUrl(originalUrl, redisClient, logger) {
 
     logger.warn("Primary DB reported code conflict", {
       code: hashCode,
-      originalUrl,
+      url: summarizeUrl(new URL(originalUrl)),
     });
 
     const cachedUrl = await getCachedUrl(redisClient, hashCode, logger);
