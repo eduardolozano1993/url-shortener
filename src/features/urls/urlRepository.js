@@ -27,8 +27,12 @@ function generateRandomCode() {
   return toBase62(crypto.randomBytes(6));
 }
 
-async function createShortUrl(originalUrl, redisClient) {
+async function createShortUrl(originalUrl, redisClient, logger) {
   const hashCode = generateHashCode(originalUrl);
+  logger.step("Generated deterministic hash code", {
+    code: hashCode,
+    originalUrl,
+  });
 
   try {
     const result = await db.queryWrite(
@@ -38,20 +42,30 @@ async function createShortUrl(originalUrl, redisClient) {
       RETURNING id, code, original_url AS "originalUrl", created_at AS "createdAt"
       `,
       [hashCode, originalUrl],
+      logger,
     );
-    console.log("URL shortened using hash code:", hashCode);
-    await db.upsertReplicaUrl(result.rows[0]);
-    await cacheUrl(redisClient, result.rows[0]);
+    logger.success("Inserted new row into primary DB", result.rows[0]);
+    await db.upsertReplicaUrl(result.rows[0], logger);
+    await cacheUrl(redisClient, result.rows[0], logger);
     return result.rows[0];
   } catch (error) {
     if (error.code !== "23505") {
+      logger.error("Primary DB write failed", {
+        code: error.code,
+        message: error.message,
+      });
       throw error;
     }
 
-    const cachedUrl = await getCachedUrl(redisClient, hashCode);
+    logger.warn("Primary DB reported code conflict", {
+      code: hashCode,
+      originalUrl,
+    });
+
+    const cachedUrl = await getCachedUrl(redisClient, hashCode, logger);
 
     if (cachedUrl && cachedUrl.originalUrl === originalUrl) {
-      console.log("Deduplication hit from cache for URL:", originalUrl);
+      logger.success("Duplicate URL resolved from Redis cache", cachedUrl);
       return cachedUrl;
     }
 
@@ -62,24 +76,27 @@ async function createShortUrl(originalUrl, redisClient) {
       WHERE code = $1
       `,
       [hashCode],
+      logger,
     );
 
     if (existing.rows.length > 0) {
       const row = existing.rows[0];
 
       if (row.originalUrl === originalUrl) {
-        console.log("Deduplication hit from DB for URL:", originalUrl);
-        await db.upsertReplicaUrl(row);
-        await cacheUrl(redisClient, row);
+        logger.success("Duplicate URL resolved from primary DB", row);
+        await db.upsertReplicaUrl(row, logger);
+        await cacheUrl(redisClient, row, logger);
         return row;
       }
     }
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      console.log(
-        `Collision detected for code "${hashCode}". Attempting random fallback (attempt ${attempt + 1})...`,
-      );
       const randomCode = generateRandomCode();
+      logger.warn("Hash collision detected, trying random fallback", {
+        attempt: attempt + 1,
+        originalHashCode: hashCode,
+        randomCode,
+      });
 
       try {
         const result = await db.queryWrite(
@@ -89,13 +106,20 @@ async function createShortUrl(originalUrl, redisClient) {
           RETURNING id, code, original_url AS "originalUrl", created_at AS "createdAt"
           `,
           [randomCode, originalUrl],
+          logger,
         );
 
-        await db.upsertReplicaUrl(result.rows[0]);
-        await cacheUrl(redisClient, result.rows[0]);
+        logger.success("Inserted fallback row into primary DB", result.rows[0]);
+        await db.upsertReplicaUrl(result.rows[0], logger);
+        await cacheUrl(redisClient, result.rows[0], logger);
         return result.rows[0];
       } catch (err) {
         if (err.code !== "23505" || attempt === 4) {
+          logger.error("Random fallback insert failed", {
+            attempt: attempt + 1,
+            code: err.code,
+            message: err.message,
+          });
           throw err;
         }
       }
@@ -105,21 +129,28 @@ async function createShortUrl(originalUrl, redisClient) {
   throw new Error("Unable to generate a unique short code");
 }
 
-async function getUrlByCode(code, redisClient) {
-  const cachedUrl = await getCachedUrl(redisClient, code);
+async function getUrlByCode(code, redisClient, logger) {
+  const cachedUrl = await getCachedUrl(redisClient, code, logger);
 
   if (cachedUrl) {
+    logger.success("Returning URL from Redis cache", cachedUrl);
     return cachedUrl;
   }
 
-  console.log(`DB lookup for code: ${code}`);
   const result = await db.queryRead(
     'SELECT id, code, original_url AS "originalUrl", created_at AS "createdAt" FROM urls WHERE code = $1',
     [code],
+    logger,
   );
   const url = result.rows[0] || null;
 
-  await cacheUrl(redisClient, url);
+  if (!url) {
+    logger.warn("Replica DB returned no row for code", { code });
+    return null;
+  }
+
+  logger.success("Read URL from replica DB", url);
+  await cacheUrl(redisClient, url, logger);
 
   return url;
 }

@@ -7,31 +7,72 @@ function getCacheKey(code) {
   return `${CACHE_KEY_PREFIX}${code}`;
 }
 
-async function getCachedUrl(redisClient, code) {
+async function getCachedUrl(redisClient, code, logger) {
   if (!redisClient || !redisEnabled()) {
+    if (logger) {
+      logger.warn("Redis read skipped because cache is unavailable", { code });
+    }
     return null;
   }
 
-  const cachedValue = await redisClient.get(getCacheKey(code));
+  const key = getCacheKey(code);
+
+  if (logger) {
+    logger.step("Checking Redis cache", { code, key });
+  }
+
+  const cachedValue = await redisClient.get(key);
 
   if (!cachedValue) {
-    console.log(`Cache miss for code: ${code}`);
+    if (logger) {
+      logger.warn("Redis cache miss", { code, key });
+    }
     return null;
   }
 
-  console.log(`Cached value for code ${code}:`, cachedValue);
+  if (logger) {
+    logger.success("Redis cache hit", {
+      code,
+      key,
+      value: JSON.parse(cachedValue),
+    });
+  }
 
   return JSON.parse(cachedValue);
 }
 
-async function cacheUrl(redisClient, url) {
+async function cacheUrl(redisClient, url, logger) {
   if (!redisClient || !redisEnabled() || !url) {
+    if (logger) {
+      logger.warn("Redis cache write skipped", {
+        cacheAvailable: Boolean(redisClient && redisEnabled()),
+        url,
+      });
+    }
     return;
   }
 
-  await redisClient.set(getCacheKey(url.code), JSON.stringify(url), {
+  const key = getCacheKey(url.code);
+  const value = JSON.stringify(url);
+
+  if (logger) {
+    logger.step("Writing value to Redis", {
+      key,
+      ttlSeconds: redisTtlSeconds,
+      value: url,
+    });
+  }
+
+  await redisClient.set(key, value, {
     EX: redisTtlSeconds,
   });
+
+  if (logger) {
+    logger.success("Redis cache write completed", {
+      key,
+      ttlSeconds: redisTtlSeconds,
+    });
+  }
 }
 
 module.exports = {
