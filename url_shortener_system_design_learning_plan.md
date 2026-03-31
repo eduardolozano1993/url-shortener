@@ -16,34 +16,6 @@ Build a scalable URL shortener step by step, starting from a simple local setup 
 
 ---
 
-# Phase 3 — Introduce Caching (Redis)
-
-## Objective
-
-Reduce DB load and improve latency.
-
-## Add
-
-- Redis cache layer
-
-## Flow
-
-- Read:
-  1. Check cache
-  2. If miss → DB
-  3. Update cache
-
-- Write:
-  1. Save to DB
-  2. Update cache
-
-## What You Learn
-
-- Cache-aside pattern
-- Cache invalidation basics
-
----
-
 # Phase 4 — Dockerize the System
 
 ## Objective

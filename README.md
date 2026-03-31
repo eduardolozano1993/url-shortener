@@ -22,7 +22,7 @@ Phase 3 implementation of a minimal URL shortener with PostgreSQL and Redis cach
 Recommended `.env`:
 
 ```bash
-PORT=3000
+PORT=4000
 PGHOST=localhost
 PGPORT=5432
 PGDATABASE=url_shortener
@@ -73,7 +73,7 @@ Response:
 {
   "code": "abc12345",
   "originalUrl": "https://example.com/",
-  "shortUrl": "http://localhost:3000/abc12345"
+  "shortUrl": "http://localhost:4000/abc12345"
 }
 ```
 
@@ -84,7 +84,7 @@ Response:
 Example:
 
 ```bash
-curl -i http://localhost:3000/abc12345
+curl -i http://localhost:4000/abc12345
 ```
 
 That request returns a redirect to the stored `originalUrl`.
