@@ -43,19 +43,17 @@ REDIS_TTL_SECONDS=3600
 
 ## Primary, Replica, and Redis with Docker
 
-```bash
-docker run --name url-shortener-db ^
-  -e POSTGRES_PASSWORD=postgres ^
-  -e POSTGRES_DB=url_shortener ^
-  -p 5432:5432 ^
-  -d postgres:16
-```
-
 Run the primary DB, replica DB, and Redis with Docker Compose:
 
 ```bash
 docker compose up -d
 ```
+
+That command starts:
+
+- `db-primary` on `5432`
+- `db-replica` on `5433`
+- `redis` on `6379`
 
 ## API
 
@@ -114,3 +112,4 @@ The migration lives in `src/db/migrations/001_create_urls_table.sql`.
 - Writes go to the primary database first, then sync to the simulated replica, then populate Redis.
 - Duplicate and collision checks stay on the primary database for correctness.
 - Set `REPLICA_SYNC_DELAY_MS` above `0` if you want to simulate eventual consistency.
+- The app logs each request flow step in the console, including Redis hits and misses, primary DB writes, replica DB reads, and replica syncs.
