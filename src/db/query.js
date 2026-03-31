@@ -1,11 +1,16 @@
-const pool = require("./pool");
+const { replicaSyncDelayMs } = require("../config");
+const { primaryPool, replicaPool } = require("./pool");
 
-async function query(text, params) {
-  return pool.query(text, params);
+async function queryWrite(text, params) {
+  return primaryPool.query(text, params);
 }
 
-async function withTransaction(callback) {
-  const client = await pool.connect();
+async function queryRead(text, params) {
+  return replicaPool.query(text, params);
+}
+
+async function withPrimaryTransaction(callback) {
+  const client = await primaryPool.connect();
 
   try {
     await client.query("BEGIN");
@@ -20,7 +25,39 @@ async function withTransaction(callback) {
   }
 }
 
+async function upsertReplicaUrl(url) {
+  if (!url) {
+    return;
+  }
+
+  const sync = async () => {
+    await replicaPool.query(
+      `
+      INSERT INTO urls (id, code, original_url, created_at)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (code) DO UPDATE
+      SET original_url = EXCLUDED.original_url,
+          created_at = EXCLUDED.created_at
+      `,
+      [url.id, url.code, url.originalUrl, url.createdAt],
+    );
+  };
+
+  if (replicaSyncDelayMs > 0) {
+    setTimeout(() => {
+      sync().catch((error) => {
+        console.error("Replica sync failed:", error.message);
+      });
+    }, replicaSyncDelayMs);
+    return;
+  }
+
+  await sync();
+}
+
 module.exports = {
-  query,
-  withTransaction,
+  queryWrite,
+  queryRead,
+  withPrimaryTransaction,
+  upsertReplicaUrl,
 };

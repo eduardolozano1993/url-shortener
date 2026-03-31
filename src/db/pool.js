@@ -1,16 +1,51 @@
 const { Pool } = require("pg");
-const { databaseUrl, dbHost, dbPort, dbName, dbUser, dbPassword } = require("../config");
+const {
+  databaseUrl,
+  primaryDbHost,
+  primaryDbPort,
+  primaryDbName,
+  primaryDbUser,
+  primaryDbPassword,
+  replicaDbHost,
+  replicaDbPort,
+  replicaDbName,
+  replicaDbUser,
+  replicaDbPassword,
+} = require("../config");
 
-const poolConfig = databaseUrl
-  ? { connectionString: databaseUrl }
-  : {
-      host: dbHost,
-      port: dbPort,
-      database: dbName,
-      user: dbUser,
-      password: dbPassword,
-    };
+function buildPoolConfig({ host, port, database, user, password }) {
+  return databaseUrl
+    ? { connectionString: databaseUrl }
+    : {
+        host,
+        port,
+        database,
+        user,
+        password,
+      };
+}
 
-const pool = new Pool(poolConfig);
+const primaryPool = new Pool(
+  buildPoolConfig({
+    host: primaryDbHost,
+    port: primaryDbPort,
+    database: primaryDbName,
+    user: primaryDbUser,
+    password: primaryDbPassword,
+  }),
+);
 
-module.exports = pool;
+const replicaPool = new Pool(
+  buildPoolConfig({
+    host: replicaDbHost,
+    port: replicaDbPort,
+    database: replicaDbName,
+    user: replicaDbUser,
+    password: replicaDbPassword,
+  }),
+);
+
+module.exports = {
+  primaryPool,
+  replicaPool,
+};

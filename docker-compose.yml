@@ -1,23 +1,35 @@
 services:
-  db:
+  db-primary:
     image: postgres:16
-    container_name: url-shortener-db
+    container_name: url-shortener-db-primary
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: url_shortener
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+      POSTGRES_DB: ${PGDATABASE}
     ports:
-      - "5432:5432"
+      - "${PGPORT}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_primary_data:/var/lib/postgresql
+  db-replica:
+    image: postgres:16
+    container_name: url-shortener-db-replica
+    environment:
+      POSTGRES_USER: ${PGREPLICA_USER}
+      POSTGRES_PASSWORD: ${PGREPLICA_PASSWORD}
+      POSTGRES_DB: ${PGREPLICA_DATABASE}
+    ports:
+      - "${PGREPLICA_PORT}:5432"
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql
   redis:
     image: redis:7-alpine
     container_name: url-shortener-redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
 
 volumes:
-  postgres_data:
+  postgres_primary_data:
+  postgres_replica_data:
   redis_data:

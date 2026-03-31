@@ -1,8 +1,8 @@
 const fs = require("fs/promises");
 const path = require("path");
-const pool = require("./pool");
+const { primaryPool, replicaPool } = require("./pool");
 
-async function ensureMigrationsTable() {
+async function ensureMigrationsTable(pool) {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       id SERIAL PRIMARY KEY,
@@ -12,17 +12,17 @@ async function ensureMigrationsTable() {
   `);
 }
 
-async function getExecutedMigrations() {
+async function getExecutedMigrations(pool) {
   const result = await pool.query("SELECT filename FROM schema_migrations");
   return new Set(result.rows.map((row) => row.filename));
 }
 
-async function run() {
+async function runForPool(pool, label) {
   const migrationsDir = path.join(__dirname, "migrations");
   const filenames = (await fs.readdir(migrationsDir)).sort();
 
-  await ensureMigrationsTable();
-  const executed = await getExecutedMigrations();
+  await ensureMigrationsTable(pool);
+  const executed = await getExecutedMigrations(pool);
 
   for (const filename of filenames) {
     if (executed.has(filename)) {
@@ -38,14 +38,19 @@ async function run() {
       await pool.query(sql);
       await pool.query("INSERT INTO schema_migrations (filename) VALUES ($1)", [filename]);
       await pool.query("COMMIT");
-      console.log(`Applied migration: ${filename}`);
+      console.log(`[${label}] Applied migration: ${filename}`);
     } catch (error) {
       await pool.query("ROLLBACK");
       throw error;
     }
   }
 
-  console.log("Migrations complete");
+  console.log(`[${label}] Migrations complete`);
+}
+
+async function run() {
+  await runForPool(primaryPool, "primary");
+  await runForPool(replicaPool, "replica");
 }
 
 run()
@@ -54,5 +59,6 @@ run()
     process.exitCode = 1;
   })
   .finally(async () => {
-    await pool.end();
+    await primaryPool.end();
+    await replicaPool.end();
   });

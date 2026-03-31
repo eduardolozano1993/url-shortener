@@ -1,11 +1,12 @@
 # URL Shortener
 
-Phase 3 implementation of a minimal URL shortener with PostgreSQL and Redis caching.
+Phase 5 implementation of a minimal URL shortener with Redis caching and simulated read/write separation.
 
 ## What this includes
 
 - Single Node.js service
-- Single PostgreSQL database
+- PostgreSQL primary for writes
+- PostgreSQL replica for reads
 - Redis cache layer using cache-aside
 - `POST /shorten` to create a short URL
 - `GET /:code` to redirect to the original URL
@@ -13,11 +14,12 @@ Phase 3 implementation of a minimal URL shortener with PostgreSQL and Redis cach
 ## Setup
 
 1. Create a `.env` file.
-2. Make sure PostgreSQL is reachable on port `5432`.
-3. Make sure Redis is reachable on port `6379`.
-4. Install dependencies with `npm install`.
-5. Run migrations with `npm run db:migrate`.
-6. Start the app with `npm run dev`.
+2. Make sure primary PostgreSQL is reachable on port `5432`.
+3. Make sure replica PostgreSQL is reachable on port `5433`.
+4. Make sure Redis is reachable on port `6379`.
+5. Install dependencies with `npm install`.
+6. Run migrations with `npm run db:migrate`.
+7. Start the app with `npm run dev`.
 
 Recommended `.env`:
 
@@ -28,12 +30,18 @@ PGPORT=5432
 PGDATABASE=url_shortener
 PGUSER=postgres
 PGPASSWORD=postgres
+PGREPLICA_HOST=localhost
+PGREPLICA_PORT=5433
+PGREPLICA_DATABASE=url_shortener
+PGREPLICA_USER=postgres
+PGREPLICA_PASSWORD=postgres
+REPLICA_SYNC_DELAY_MS=0
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_TTL_SECONDS=3600
 ```
 
-## PostgreSQL and Redis with Docker
+## Primary, Replica, and Redis with Docker
 
 ```bash
 docker run --name url-shortener-db ^
@@ -43,7 +51,7 @@ docker run --name url-shortener-db ^
   -d postgres:16
 ```
 
-Run both services with Docker Compose:
+Run the primary DB, replica DB, and Redis with Docker Compose:
 
 ```bash
 docker compose up -d
@@ -102,6 +110,7 @@ The migration lives in `src/db/migrations/001_create_urls_table.sql`.
 
 ## Notes
 
-- Reads use the cache-aside pattern: Redis first, then PostgreSQL on miss, then Redis is warmed.
-- Writes save to PostgreSQL first and then populate Redis.
-- You can confirm cache behavior in server logs by watching `Cache hit`, `Cache miss`, and `DB lookup`.
+- Reads use Redis first, then the replica database on cache miss.
+- Writes go to the primary database first, then sync to the simulated replica, then populate Redis.
+- Duplicate and collision checks stay on the primary database for correctness.
+- Set `REPLICA_SYNC_DELAY_MS` above `0` if you want to simulate eventual consistency.

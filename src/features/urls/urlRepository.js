@@ -31,7 +31,7 @@ async function createShortUrl(originalUrl, redisClient) {
   const hashCode = generateHashCode(originalUrl);
 
   try {
-    const result = await db.query(
+    const result = await db.queryWrite(
       `
       INSERT INTO urls (code, original_url)
       VALUES ($1, $2)
@@ -40,6 +40,7 @@ async function createShortUrl(originalUrl, redisClient) {
       [hashCode, originalUrl],
     );
     console.log("URL shortened using hash code:", hashCode);
+    await db.upsertReplicaUrl(result.rows[0]);
     await cacheUrl(redisClient, result.rows[0]);
     return result.rows[0];
   } catch (error) {
@@ -54,7 +55,7 @@ async function createShortUrl(originalUrl, redisClient) {
       return cachedUrl;
     }
 
-    const existing = await db.query(
+    const existing = await db.queryWrite(
       `
       SELECT id, code, original_url AS "originalUrl", created_at AS "createdAt"
       FROM urls
@@ -68,6 +69,7 @@ async function createShortUrl(originalUrl, redisClient) {
 
       if (row.originalUrl === originalUrl) {
         console.log("Deduplication hit from DB for URL:", originalUrl);
+        await db.upsertReplicaUrl(row);
         await cacheUrl(redisClient, row);
         return row;
       }
@@ -80,7 +82,7 @@ async function createShortUrl(originalUrl, redisClient) {
       const randomCode = generateRandomCode();
 
       try {
-        const result = await db.query(
+        const result = await db.queryWrite(
           `
           INSERT INTO urls (code, original_url)
           VALUES ($1, $2)
@@ -89,6 +91,7 @@ async function createShortUrl(originalUrl, redisClient) {
           [randomCode, originalUrl],
         );
 
+        await db.upsertReplicaUrl(result.rows[0]);
         await cacheUrl(redisClient, result.rows[0]);
         return result.rows[0];
       } catch (err) {
@@ -110,7 +113,7 @@ async function getUrlByCode(code, redisClient) {
   }
 
   console.log(`DB lookup for code: ${code}`);
-  const result = await db.query(
+  const result = await db.queryRead(
     'SELECT id, code, original_url AS "originalUrl", created_at AS "createdAt" FROM urls WHERE code = $1',
     [code],
   );
