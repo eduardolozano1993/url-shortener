@@ -1,0 +1,13 @@
+{
+  "dbExplorer.profiles": [
+    {
+      "id": "docker-postgres",
+      "label": "Docker Postgres",
+      "engine": "postgres",
+      "host": "localhost",
+      "port": 5432,
+      "database": "url_shortener",
+      "user": "jose.elizondo"
+    }
+  ]
+}
