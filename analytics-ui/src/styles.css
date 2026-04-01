@@ -309,6 +309,19 @@ input {
   color: rgba(237, 242, 255, 0.68);
 }
 
+.table-row-copy {
+  min-width: 0;
+}
+
+.table-row-original {
+  margin-bottom: 0.15rem;
+  color: rgba(255, 189, 115, 0.92);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .rank-badge {
   width: 2rem;
   height: 2rem;

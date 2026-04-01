@@ -36,6 +36,19 @@ function EmptyState({ message }) {
   return <div className="empty-state">{message}</div>;
 }
 
+function formatOriginalUrl(originalUrl) {
+  if (!originalUrl) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(originalUrl);
+    return `${parsedUrl.hostname}${parsedUrl.pathname}${parsedUrl.search}`;
+  } catch {
+    return originalUrl;
+  }
+}
+
 function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -292,7 +305,12 @@ export default function App() {
                     onClick={() => setSelectedCode(item.code)}
                   >
                     <span className="rank-badge">{index + 1}</span>
-                    <div>
+                    <div className="table-row-copy">
+                      {item.originalUrl ? (
+                        <p className="table-row-original" title={item.originalUrl}>
+                          {formatOriginalUrl(item.originalUrl)}
+                        </p>
+                      ) : null}
                       <strong>{item.code}</strong>
                       <p>Last click: {item.lastClickedAt ? new Date(item.lastClickedAt).toLocaleString() : "n/a"}</p>
                     </div>

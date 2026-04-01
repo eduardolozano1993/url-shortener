@@ -12,12 +12,13 @@ async function recordClick(event, logger) {
         event_id,
         url_id,
         url_code,
+        original_url,
         clicked_at,
         referrer,
         user_agent,
         ip_address
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (event_id) DO NOTHING
       RETURNING url_id
       `,
@@ -25,6 +26,7 @@ async function recordClick(event, logger) {
         event.eventId,
         event.urlId,
         event.urlCode,
+        event.originalUrl,
         event.occurredAt,
         event.referrer,
         event.userAgent,
@@ -43,18 +45,19 @@ async function recordClick(event, logger) {
 
     await client.query(
       `
-      INSERT INTO analytics_url_counters (url_id, url_code, total_clicks, last_clicked_at)
-      VALUES ($1, $2, 1, $3)
+      INSERT INTO analytics_url_counters (url_id, url_code, original_url, total_clicks, last_clicked_at)
+      VALUES ($1, $2, $3, 1, $4)
       ON CONFLICT (url_id) DO UPDATE
       SET total_clicks = analytics_url_counters.total_clicks + 1,
           url_code = EXCLUDED.url_code,
+          original_url = COALESCE(EXCLUDED.original_url, analytics_url_counters.original_url),
           last_clicked_at = GREATEST(
             COALESCE(analytics_url_counters.last_clicked_at, EXCLUDED.last_clicked_at),
             EXCLUDED.last_clicked_at
           ),
           updated_at = NOW()
       `,
-      [event.urlId, event.urlCode, event.occurredAt],
+      [event.urlId, event.urlCode, event.originalUrl, event.occurredAt],
     );
 
     await client.query(
@@ -106,7 +109,11 @@ async function getOverview() {
   const [topUrlsResult, recentVolumeResult, topReferrersResult] = await Promise.all([
     analyticsPool.query(
       `
-      SELECT url_code AS code, total_clicks AS "totalClicks", last_clicked_at AS "lastClickedAt"
+      SELECT
+        url_code AS code,
+        original_url AS "originalUrl",
+        total_clicks AS "totalClicks",
+        last_clicked_at AS "lastClickedAt"
       FROM analytics_url_counters
       ORDER BY total_clicks DESC, url_code ASC
       LIMIT 10
@@ -145,6 +152,7 @@ async function getSummaryByCode(code) {
       `
       SELECT
         url_code AS code,
+        original_url AS "originalUrl",
         total_clicks AS "totalClicks",
         last_clicked_at AS "lastClickedAt"
       FROM analytics_url_counters
