@@ -1,0 +1,31 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.9.3
+2 info using node@v22.20.0
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\elizo\OneDrive\Documentos\Proyectos\url-shortener\front-end\.npmrc
+5 silly config load:file:C:\Users\elizo\.npmrc
+6 silly config load:file:C:\Users\elizo\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm install
+8 verbose argv "install" "--cache" ".npm-cache"
+9 verbose logfile logs-max:10 dir:C:\Users\elizo\OneDrive\Documentos\Proyectos\url-shortener\front-end\.npm-cache\_logs\2026-03-31T22_03_45_800Z-
+10 verbose logfile C:\Users\elizo\OneDrive\Documentos\Proyectos\url-shortener\front-end\.npm-cache\_logs\2026-03-31T22_03_45_800Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+13 http fetch GET https://registry.npmjs.org/npm attempt 1 failed with EACCES
+14 silly idealTree buildDeps
+15 silly fetch manifest react@^19.2.0
+16 silly packumentCache full:https://registry.npmjs.org/react cache-miss
+17 http fetch GET https://registry.npmjs.org/react attempt 1 failed with EACCES
+18 http fetch GET https://registry.npmjs.org/npm attempt 2 failed with EACCES
+19 http fetch GET https://registry.npmjs.org/react attempt 2 failed with EACCES
+20 http fetch GET https://registry.npmjs.org/npm attempt 3 failed with EACCES
+21 http fetch GET https://registry.npmjs.org/react attempt 3 failed with EACCES
+22 silly fetch manifest react-dom@^19.2.0
+23 silly packumentCache full:https://registry.npmjs.org/react-dom cache-miss
+24 http fetch GET https://registry.npmjs.org/react-dom attempt 1 failed with EACCES
+25 http fetch GET https://registry.npmjs.org/react-dom attempt 2 failed with EACCES
+26 http fetch GET https://registry.npmjs.org/react-dom attempt 3 failed with EACCES
+27 silly fetch manifest vite@^7.1.9
+28 silly packumentCache full:https://registry.npmjs.org/vite cache-miss
+29 http fetch GET https://registry.npmjs.org/vite attempt 1 failed with EACCES
+30 http fetch GET https://registry.npmjs.org/vite attempt 2 failed with EACCES

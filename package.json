@@ -1,19 +1,12 @@
 {
-  "name": "url-shortener",
-  "version": "1.0.0",
+  "name": "url-shortener-workspace",
   "private": true,
-  "description": "Minimal Express app with PostgreSQL access",
-  "main": "src/server.js",
   "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js",
-    "db:migrate": "node src/db/migrate.js",
-    "test": "node --test"
-  },
-  "dependencies": {
-    "dotenv": "^16.4.5",
-    "express": "^4.21.2",
-    "pg": "^8.13.3",
-    "redis": "^5.11.0"
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "start": "npm --prefix backend run start",
+    "db:migrate": "npm --prefix backend run db:migrate",
+    "test": "npm --prefix backend run test",
+    "build": "npm --prefix frontend run build"
   }
 }

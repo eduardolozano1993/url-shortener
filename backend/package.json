@@ -1,0 +1,19 @@
+{
+  "name": "url-shortener-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Express backend for the URL shortener app",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "db:migrate": "node src/db/migrate.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "pg": "^8.13.3",
+    "redis": "^5.11.0"
+  }
+}

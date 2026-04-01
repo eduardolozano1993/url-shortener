@@ -1,6 +1,9 @@
+const path = require("node:path");
 const dotenv = require("dotenv");
 
-dotenv.config();
+dotenv.config({
+  path: path.resolve(__dirname, "../../.env"),
+});
 
 const port = Number(process.env.PORT || 4000);
 const publicBaseUrl = new URL(
