@@ -1,6 +1,15 @@
 const { replicaSyncDelayMs } = require("../config");
 const { primaryPool, replicaPool } = require("./pool");
 
+/**
+ * Emits a compact SQL trace into the structured flow logger.
+ *
+ * @param {object | undefined} logger
+ * @param {string} target
+ * @param {string} text
+ * @param {unknown[] | undefined} params
+ * @returns {void}
+ */
 function logQuery(logger, target, text, params) {
   if (!logger) {
     return;
@@ -12,16 +21,39 @@ function logQuery(logger, target, text, params) {
   });
 }
 
+/**
+ * Executes a write against the primary database.
+ *
+ * @param {string} text
+ * @param {unknown[]} params
+ * @param {object} logger
+ * @returns {Promise<import("pg").QueryResult>}
+ */
 async function queryWrite(text, params, logger) {
   logQuery(logger, "primary DB", text, params);
   return primaryPool.query(text, params);
 }
 
+/**
+ * Executes a read against the replica database.
+ *
+ * @param {string} text
+ * @param {unknown[]} params
+ * @param {object} logger
+ * @returns {Promise<import("pg").QueryResult>}
+ */
 async function queryRead(text, params, logger) {
   logQuery(logger, "replica DB", text, params);
   return replicaPool.query(text, params);
 }
 
+/**
+ * Wraps multiple statements in a primary-database transaction.
+ *
+ * @template T
+ * @param {(client: import("pg").PoolClient) => Promise<T>} callback
+ * @returns {Promise<T>}
+ */
 async function withPrimaryTransaction(callback) {
   const client = await primaryPool.connect();
 
@@ -38,6 +70,14 @@ async function withPrimaryTransaction(callback) {
   }
 }
 
+/**
+ * Mirrors a URL row into the replica. When a sync delay is configured, the
+ * write is intentionally deferred to simulate eventual consistency.
+ *
+ * @param {{id: number, code: string, originalUrl: string, createdAt: string}|null} url
+ * @param {object} [logger]
+ * @returns {Promise<void>}
+ */
 async function upsertReplicaUrl(url, logger) {
   if (!url) {
     return;
@@ -75,6 +115,7 @@ async function upsertReplicaUrl(url, logger) {
       });
     }
 
+    // The timeout is fire-and-forget on purpose so the API request can return immediately.
     setTimeout(() => {
       sync().catch((error) => {
         if (logger) {

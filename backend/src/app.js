@@ -7,6 +7,11 @@ const { createFlowLogger } = require("./logging/logger");
 const { getMetricsText, recordHttpRequest } = require("./monitoring/metrics");
 const { createIpRateLimiter } = require("./rateLimit/ipRateLimiter");
 
+/**
+ * Main HTTP application for the shortener backend.
+ * Wires together request logging, rate limiting, cache access, API routes, and
+ * the optional static frontend build.
+ */
 const app = express();
 const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
 const hasFrontendBuild = fs.existsSync(frontendDistPath);
@@ -37,6 +42,7 @@ app.use((req, res, next) => {
   });
 
   res.on("finish", () => {
+    // The response lifecycle is the safest place to emit duration-based metrics.
     const durationSeconds = Number(process.hrtime.bigint() - requestStart) / 1_000_000_000;
     recordHttpRequest(req, res, durationSeconds);
     req.logger.success("Request completed", {
@@ -53,6 +59,7 @@ app.use((req, res, next) => {
 
 app.use(async (req, _res, next) => {
   try {
+    // Attach a shared Redis client per request so downstream handlers can opt in to caching.
     req.redisClient = await connectRedis();
     req.logger.step("Redis client attached to request");
   } catch (error) {

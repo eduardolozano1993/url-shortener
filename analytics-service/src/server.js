@@ -16,6 +16,12 @@ startConsumer(logger.child("CONSUMER")).catch((error) => {
   process.exit(1);
 });
 
+/**
+ * Stops the HTTP server and the background consumer dependencies in a safe order.
+ *
+ * @param {string} signal
+ * @returns {Promise<void>}
+ */
 async function shutdown(signal) {
   logger.warn("Stopping analytics service", { signal });
   server.close(async () => {

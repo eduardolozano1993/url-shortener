@@ -8,6 +8,9 @@ const {
   analyticsDbPassword,
 } = require("../config");
 
+/**
+ * Shared PostgreSQL pool for analytics writes and reads.
+ */
 const analyticsPool = new Pool(
   analyticsDatabaseUrl
     ? { connectionString: analyticsDatabaseUrl }
@@ -20,6 +23,11 @@ const analyticsPool = new Pool(
       },
 );
 
+/**
+ * Closes the analytics database pool during shutdown.
+ *
+ * @returns {Promise<void>}
+ */
 async function closePool() {
   await analyticsPool.end();
 }

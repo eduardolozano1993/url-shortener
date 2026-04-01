@@ -2,6 +2,12 @@ const fs = require("fs/promises");
 const path = require("path");
 const { analyticsPool } = require("./pool");
 
+/**
+ * Ensures the migration bookkeeping table exists.
+ *
+ * @param {import("pg").Pool} pool
+ * @returns {Promise<void>}
+ */
 async function ensureMigrationsTable(pool) {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -12,11 +18,22 @@ async function ensureMigrationsTable(pool) {
   `);
 }
 
+/**
+ * Returns the filenames that have already been applied to the analytics schema.
+ *
+ * @param {import("pg").Pool} pool
+ * @returns {Promise<Set<string>>}
+ */
 async function getExecutedMigrations(pool) {
   const result = await pool.query("SELECT filename FROM schema_migrations");
   return new Set(result.rows.map((row) => row.filename));
 }
 
+/**
+ * Applies all pending analytics migrations in filename order.
+ *
+ * @returns {Promise<void>}
+ */
 async function run() {
   const migrationsDir = path.join(__dirname, "migrations");
   const filenames = (await fs.readdir(migrationsDir)).sort();
@@ -30,6 +47,7 @@ async function run() {
     }
 
     const sql = await fs.readFile(path.join(migrationsDir, filename), "utf8");
+    // Each file is wrapped in a transaction so a broken migration never lands partially.
     await analyticsPool.query("BEGIN");
 
     try {

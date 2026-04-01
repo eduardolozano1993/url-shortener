@@ -12,10 +12,19 @@ const COLORS = {
   magenta: "\x1b[35m",
 };
 
+/**
+ * @returns {string}
+ */
 function now() {
   return new Date().toISOString();
 }
 
+/**
+ * Pretty-prints structured log payloads for terminal output.
+ *
+ * @param {unknown} data
+ * @returns {string}
+ */
 function formatData(data) {
   if (data === undefined) {
     return "";
@@ -30,6 +39,17 @@ function formatData(data) {
   });
 }
 
+/**
+ * Writes one log entry with consistent metadata and coloring.
+ *
+ * @param {string} color
+ * @param {string} requestId
+ * @param {string} flow
+ * @param {string} label
+ * @param {string} message
+ * @param {unknown} data
+ * @returns {void}
+ */
 function printLine(color, requestId, flow, label, message, data) {
   const header =
     `${COLORS.dim}${now()}${COLORS.reset} ` +
@@ -44,6 +64,22 @@ function printLine(color, requestId, flow, label, message, data) {
   }
 }
 
+/**
+ * Creates a scoped logger that preserves a shared request id across child flows.
+ *
+ * @param {string} flow
+ * @param {string} [requestId]
+ * @returns {{
+ *   requestId: string,
+ *   flow: string,
+ *   child(nextFlow: string): ReturnType<typeof createFlowLogger>,
+ *   start(message: string, data?: unknown): void,
+ *   step(message: string, data?: unknown): void,
+ *   success(message: string, data?: unknown): void,
+ *   warn(message: string, data?: unknown): void,
+ *   error(message: string, data?: unknown): void
+ * }}
+ */
 function createFlowLogger(flow, requestId = crypto.randomBytes(3).toString("hex")) {
   return {
     requestId,

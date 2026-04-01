@@ -6,6 +6,12 @@ const { summarizeUrl } = require("./urlSecurity");
 const BASE62_ALPHABET =
   "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+/**
+ * Converts random bytes into the base62 alphabet used for short codes.
+ *
+ * @param {Buffer} buffer
+ * @returns {string}
+ */
 function toBase62(buffer) {
   let num = BigInt(`0x${buffer.toString("hex")}`);
   let result = "";
@@ -19,15 +25,37 @@ function toBase62(buffer) {
   return result || "0";
 }
 
+/**
+ * Generates the preferred deterministic code for a URL so repeated shorten
+ * requests usually resolve to the same value.
+ *
+ * @param {string} originalUrl
+ * @returns {string}
+ */
 function generateHashCode(originalUrl) {
   const hash = crypto.createHash("sha256").update(originalUrl).digest();
   return toBase62(hash.subarray(0, 6));
 }
 
+/**
+ * Generates an alternate code for the rare case where the deterministic code
+ * collides with a different URL.
+ *
+ * @returns {string}
+ */
 function generateRandomCode() {
   return toBase62(crypto.randomBytes(6));
 }
 
+/**
+ * Persists a new short URL, falling back from deterministic hashing to random
+ * codes when necessary.
+ *
+ * @param {string} originalUrl
+ * @param {import("redis").RedisClientType|null} redisClient
+ * @param {object} logger
+ * @returns {Promise<{id: number, code: string, originalUrl: string, createdAt: string}>}
+ */
 async function createShortUrl(originalUrl, redisClient, logger) {
   const hashCode = generateHashCode(originalUrl);
   logger.step("Generated deterministic hash code", {
@@ -63,6 +91,7 @@ async function createShortUrl(originalUrl, redisClient, logger) {
       url: summarizeUrl(new URL(originalUrl)),
     });
 
+    // First check whether the conflict is just the same URL being shortened again.
     const cachedUrl = await getCachedUrl(redisClient, hashCode, logger);
 
     if (cachedUrl && cachedUrl.originalUrl === originalUrl) {
@@ -91,6 +120,7 @@ async function createShortUrl(originalUrl, redisClient, logger) {
       }
     }
 
+    // If the hash belongs to some other URL, retry with random codes a few times.
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const randomCode = generateRandomCode();
       logger.warn("Hash collision detected, trying random fallback", {
@@ -130,6 +160,14 @@ async function createShortUrl(originalUrl, redisClient, logger) {
   throw new Error("Unable to generate a unique short code");
 }
 
+/**
+ * Resolves a short code, preferring cache and falling back to the replica.
+ *
+ * @param {string} code
+ * @param {import("redis").RedisClientType|null} redisClient
+ * @param {object} logger
+ * @returns {Promise<{id: number, code: string, originalUrl: string, createdAt: string}|null>}
+ */
 async function getUrlByCode(code, redisClient, logger) {
   const cachedUrl = await getCachedUrl(redisClient, code, logger);
 

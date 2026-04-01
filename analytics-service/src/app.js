@@ -8,6 +8,9 @@ const {
 const { createFlowLogger } = require("./logging/logger");
 const { getMetricsText, recordHttpRequest } = require("./monitoring/metrics");
 
+/**
+ * HTTP application for querying analytics aggregates.
+ */
 const app = express();
 
 app.use(express.json({ limit: "10kb" }));
@@ -30,10 +33,12 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") {
+    // The dashboard only needs simple CORS preflight support for read-only endpoints.
     return res.sendStatus(204);
   }
 
   res.on("finish", () => {
+    // Measure after the response completes so the histogram reflects end-to-end time.
     const durationSeconds = Number(process.hrtime.bigint() - requestStart) / 1_000_000_000;
     recordHttpRequest(req, res, durationSeconds);
     req.logger.success("Request completed", {

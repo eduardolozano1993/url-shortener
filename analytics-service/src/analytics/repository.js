@@ -1,5 +1,22 @@
 const { analyticsPool } = require("../db/pool");
 
+/**
+ * Persists an analytics click and updates the aggregate tables inside the same
+ * transaction so the counters never drift from the raw events table.
+ *
+ * @param {{
+ *   eventId: string,
+ *   urlId: number,
+ *   urlCode: string,
+ *   originalUrl: string|null,
+ *   occurredAt: string,
+ *   referrer: string|null,
+ *   userAgent: string|null,
+ *   ipAddress: string|null
+ * }} event
+ * @param {object} logger
+ * @returns {Promise<{inserted: boolean}>}
+ */
 async function recordClick(event, logger) {
   const client = await analyticsPool.connect();
 
@@ -36,6 +53,7 @@ async function recordClick(event, logger) {
 
     if (insertResult.rowCount === 0) {
       await client.query("ROLLBACK");
+      // Duplicate delivery is expected in at-least-once queue semantics, so treat it as a no-op.
       logger.warn("Skipping duplicate analytics event", {
         eventId: event.eventId,
         urlCode: event.urlCode,
@@ -105,6 +123,11 @@ async function recordClick(event, logger) {
   }
 }
 
+/**
+ * Returns the dashboard overview aggregates.
+ *
+ * @returns {Promise<{topUrls: object[], recentVolume: object[], topReferrers: object[]}>}
+ */
 async function getOverview() {
   const [topUrlsResult, recentVolumeResult, topReferrersResult] = await Promise.all([
     analyticsPool.query(
@@ -146,6 +169,12 @@ async function getOverview() {
   };
 }
 
+/**
+ * Returns per-code summary information plus the top referrers.
+ *
+ * @param {string} code
+ * @returns {Promise<object|null>}
+ */
 async function getSummaryByCode(code) {
   const [summaryResult, topReferrersResult] = await Promise.all([
     analyticsPool.query(
@@ -182,6 +211,12 @@ async function getSummaryByCode(code) {
   };
 }
 
+/**
+ * Returns recent daily click counts for one short code.
+ *
+ * @param {string} code
+ * @returns {Promise<object[]>}
+ */
 async function getDailyByCode(code) {
   const result = await analyticsPool.query(
     `
@@ -197,6 +232,12 @@ async function getDailyByCode(code) {
   return result.rows.reverse();
 }
 
+/**
+ * Returns the top referrers for one short code.
+ *
+ * @param {string} code
+ * @returns {Promise<object[]>}
+ */
 async function getReferrersByCode(code) {
   const result = await analyticsPool.query(
     `

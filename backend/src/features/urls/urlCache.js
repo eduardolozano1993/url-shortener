@@ -3,10 +3,24 @@ const { redisEnabled } = require("../../cache/redisClient");
 
 const CACHE_KEY_PREFIX = "short-url:";
 
+/**
+ * Namespaces cached URL rows so they do not collide with unrelated Redis data.
+ *
+ * @param {string} code
+ * @returns {string}
+ */
 function getCacheKey(code) {
   return `${CACHE_KEY_PREFIX}${code}`;
 }
 
+/**
+ * Attempts to resolve a short code from Redis.
+ *
+ * @param {import("redis").RedisClientType|null} redisClient
+ * @param {string} code
+ * @param {object} [logger]
+ * @returns {Promise<{id: number, code: string, originalUrl: string, createdAt: string}|null>}
+ */
 async function getCachedUrl(redisClient, code, logger) {
   if (!redisClient || !redisEnabled()) {
     if (logger) {
@@ -40,6 +54,14 @@ async function getCachedUrl(redisClient, code, logger) {
   return JSON.parse(cachedValue);
 }
 
+/**
+ * Writes a URL row into Redis to avoid repeated database lookups.
+ *
+ * @param {import("redis").RedisClientType|null} redisClient
+ * @param {{code: string} & Record<string, unknown>} url
+ * @param {object} [logger]
+ * @returns {Promise<void>}
+ */
 async function cacheUrl(redisClient, url, logger) {
   if (!redisClient || !redisEnabled() || !url) {
     if (logger) {

@@ -2,6 +2,12 @@ const fs = require("fs/promises");
 const path = require("path");
 const { primaryPool, replicaPool } = require("./pool");
 
+/**
+ * Ensures the bookkeeping table exists before applying file-based migrations.
+ *
+ * @param {import("pg").Pool} pool
+ * @returns {Promise<void>}
+ */
 async function ensureMigrationsTable(pool) {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -12,11 +18,25 @@ async function ensureMigrationsTable(pool) {
   `);
 }
 
+/**
+ * Loads the set of migration filenames that have already been applied.
+ *
+ * @param {import("pg").Pool} pool
+ * @returns {Promise<Set<string>>}
+ */
 async function getExecutedMigrations(pool) {
   const result = await pool.query("SELECT filename FROM schema_migrations");
   return new Set(result.rows.map((row) => row.filename));
 }
 
+/**
+ * Applies all pending SQL migrations to the provided pool.
+ *
+ * @param {import("pg").Pool} pool
+ * @param {string} label
+ * @param {string} migrationsDir
+ * @returns {Promise<void>}
+ */
 async function runForPool(pool, label, migrationsDir) {
   const filenames = (await fs.readdir(migrationsDir)).sort();
 
@@ -31,6 +51,7 @@ async function runForPool(pool, label, migrationsDir) {
     const filePath = path.join(migrationsDir, filename);
     const sql = await fs.readFile(filePath, "utf8");
 
+    // Each migration runs in its own transaction so a partial failure cannot leave drift behind.
     await pool.query("BEGIN");
 
     try {
@@ -47,6 +68,11 @@ async function runForPool(pool, label, migrationsDir) {
   console.log(`[${label}] Migrations complete`);
 }
 
+/**
+ * Runs the same schema on both the primary and the read replica.
+ *
+ * @returns {Promise<void>}
+ */
 async function run() {
   await runForPool(primaryPool, "primary", path.join(__dirname, "migrations", "core"));
   await runForPool(replicaPool, "replica", path.join(__dirname, "migrations", "core"));

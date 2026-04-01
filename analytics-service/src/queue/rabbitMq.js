@@ -17,6 +17,11 @@ const {
 let connectionPromise = null;
 let channelPromise = null;
 
+/**
+ * Builds the connection URL used by the analytics consumer.
+ *
+ * @returns {string}
+ */
 function buildConnectionUrl() {
   if (rabbitMqUrl) {
     return rabbitMqUrl;
@@ -29,6 +34,11 @@ function buildConnectionUrl() {
   return `amqp://${encodeURIComponent(rabbitMqUser)}:${encodeURIComponent(rabbitMqPassword)}@${rabbitMqHost}:${rabbitMqPort}${normalizedVhost}`;
 }
 
+/**
+ * Opens the shared RabbitMQ connection and resets cached state if it drops.
+ *
+ * @returns {Promise<import("amqplib").Connection>}
+ */
 async function createConnection() {
   const connection = await amqp.connect(buildConnectionUrl());
   connection.on("error", () => {
@@ -42,6 +52,9 @@ async function createConnection() {
   return connection;
 }
 
+/**
+ * @returns {Promise<import("amqplib").Connection>}
+ */
 async function getConnection() {
   if (!connectionPromise) {
     connectionPromise = createConnection();
@@ -50,6 +63,12 @@ async function getConnection() {
   return connectionPromise;
 }
 
+/**
+ * Declares the exchange and queues consumed by the analytics worker.
+ *
+ * @param {import("amqplib").Channel} channel
+ * @returns {Promise<void>}
+ */
 async function configureTopology(channel) {
   await channel.assertExchange(analyticsExchange, "topic", { durable: true });
   await channel.assertQueue(analyticsClickedQueue, { durable: true });
@@ -67,6 +86,11 @@ async function configureTopology(channel) {
   await channel.assertQueue(analyticsFailedQueue, { durable: true });
 }
 
+/**
+ * Returns the shared channel after ensuring topology is ready.
+ *
+ * @returns {Promise<import("amqplib").Channel>}
+ */
 async function getChannel() {
   if (!channelPromise) {
     channelPromise = (async () => {
@@ -86,6 +110,11 @@ async function getChannel() {
   return channelPromise;
 }
 
+/**
+ * Closes the connection and clears cached promises for shutdown or restart.
+ *
+ * @returns {Promise<void>}
+ */
 async function closeRabbitMq() {
   if (!connectionPromise) {
     return;

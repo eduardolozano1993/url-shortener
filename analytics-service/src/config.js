@@ -6,6 +6,7 @@ dotenv.config({
 });
 
 module.exports = {
+  // Keep the analytics service isolated from the backend port by default.
   port: Number(process.env.ANALYTICS_SERVICE_PORT || 4100),
   analyticsDatabaseUrl: process.env.ANALYTICS_DATABASE_URL,
   analyticsDbHost: process.env.ANALYTICS_PGHOST || "localhost",

@@ -6,6 +6,7 @@ dotenv.config({
 });
 
 const port = Number(process.env.PORT || 4000);
+// Normalizing once here keeps every response and redirect builder aligned.
 const publicBaseUrl = new URL(
   process.env.PUBLIC_BASE_URL || `http://localhost:${port}/`,
 ).toString();

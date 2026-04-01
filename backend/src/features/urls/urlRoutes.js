@@ -13,6 +13,9 @@ const {
   recordShortUrlCreated,
 } = require("../../monitoring/metrics");
 
+/**
+ * HTTP routes for creating short URLs and resolving redirect codes.
+ */
 const router = express.Router();
 
 router.post("/shorten", async (req, res, next) => {
@@ -37,6 +40,7 @@ router.post("/shorten", async (req, res, next) => {
 
     logger.step("Validated input URL", summarizeUrl(parsedUrl));
 
+    // The repository owns deduplication, collision handling, replica sync, and cache updates.
     const url = await repository.createShortUrl(
       parsedUrl.toString(),
       req.redisClient,
@@ -79,6 +83,7 @@ router.get("/:code", async (req, res, next) => {
 
     recordRedirectResult("found");
     logger.success("Redirect target resolved", url);
+    // Analytics publishing is intentionally best-effort; the redirect still succeeds if it cannot be queued.
     await analyticsPublisher.publishUrlClicked(req, url, logger.child("EVENT"));
     return res.redirect(url.originalUrl);
   } catch (error) {

@@ -9,6 +9,13 @@ const server = app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
 
+/**
+ * Shuts the backend down in dependency order so no new requests arrive while
+ * external connections are being torn down.
+ *
+ * @param {string} signal
+ * @returns {Promise<void>}
+ */
 async function shutdown(signal) {
   console.log(`Received ${signal}, shutting down`);
   server.close(async () => {

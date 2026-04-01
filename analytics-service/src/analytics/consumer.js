@@ -8,14 +8,37 @@ const { recordAnalyticsEvent } = require("../monitoring/metrics");
 const { getChannel } = require("../queue/rabbitMq");
 const { recordClick } = require("./repository");
 
+/**
+ * Deserializes a RabbitMQ message into the analytics event payload.
+ *
+ * @param {import("amqplib").ConsumeMessage} message
+ * @returns {any}
+ */
 function parseMessage(message) {
   return JSON.parse(message.content.toString("utf8"));
 }
 
+/**
+ * Reads the retry counter maintained in RabbitMQ message headers.
+ *
+ * @param {import("amqplib").ConsumeMessage} message
+ * @returns {number}
+ */
 function getRetryCount(message) {
   return Number(message.properties.headers?.["x-retry-count"] || 0);
 }
 
+/**
+ * Routes a failed event either back to the retry queue or to the failed queue
+ * once the retry budget is exhausted.
+ *
+ * @param {import("amqplib").Channel} channel
+ * @param {import("amqplib").ConsumeMessage} message
+ * @param {any} event
+ * @param {Error} error
+ * @param {object} logger
+ * @returns {Promise<void>}
+ */
 async function routeForRetry(channel, message, event, error, logger) {
   const retryCount = getRetryCount(message);
 
@@ -42,6 +65,7 @@ async function routeForRetry(channel, message, event, error, logger) {
     return;
   }
 
+  // The retry queue has a TTL plus dead-letter routing back into the main queue.
   channel.sendToQueue(analyticsRetryQueue, message.content, {
     contentType: "application/json",
     deliveryMode: 2,
@@ -63,6 +87,13 @@ async function routeForRetry(channel, message, event, error, logger) {
   recordAnalyticsEvent("retry");
 }
 
+/**
+ * Starts the RabbitMQ consumer that turns click events into analytics rows and
+ * aggregate counters.
+ *
+ * @param {object} logger
+ * @returns {Promise<void>}
+ */
 async function startConsumer(logger) {
   const channel = await getChannel();
   await channel.prefetch(10);

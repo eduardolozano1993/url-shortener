@@ -4,6 +4,12 @@ const requestDurationBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5
 const counters = new Map();
 const histograms = new Map();
 
+/**
+ * Escapes label values to Prometheus exposition format.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
 function escapeLabelValue(value) {
   return String(value)
     .replace(/\\/g, "\\\\")
@@ -11,6 +17,13 @@ function escapeLabelValue(value) {
     .replace(/"/g, '\\"');
 }
 
+/**
+ * Produces a stable key so labels with the same entries collapse into a single
+ * counter or histogram series.
+ *
+ * @param {Record<string, string>} labels
+ * @returns {string}
+ */
 function getLabelKey(labels) {
   return JSON.stringify(
     Object.keys(labels)
@@ -22,6 +35,12 @@ function getLabelKey(labels) {
   );
 }
 
+/**
+ * Serializes label objects for Prometheus text output.
+ *
+ * @param {Record<string, string|number>} labels
+ * @returns {string}
+ */
 function renderLabels(labels) {
   const entries = Object.entries(labels);
 
@@ -34,6 +53,14 @@ function renderLabels(labels) {
     .join(",")}}`;
 }
 
+/**
+ * Increments an in-memory counter metric.
+ *
+ * @param {string} name
+ * @param {Record<string, string>} labels
+ * @param {number} [value]
+ * @returns {void}
+ */
 function incrementCounter(name, labels, value = 1) {
   const key = getLabelKey(labels);
   const existing = counters.get(name) || new Map();
@@ -44,6 +71,15 @@ function incrementCounter(name, labels, value = 1) {
   counters.set(name, existing);
 }
 
+/**
+ * Observes a histogram sample by updating every matching bucket plus the sum/count.
+ *
+ * @param {string} name
+ * @param {Record<string, string>} labels
+ * @param {number} value
+ * @param {number[]} buckets
+ * @returns {void}
+ */
 function observeHistogram(name, labels, value, buckets) {
   const key = getLabelKey(labels);
   const existing = histograms.get(name) || new Map();
@@ -69,6 +105,13 @@ function observeHistogram(name, labels, value, buckets) {
   histograms.set(name, existing);
 }
 
+/**
+ * Uses Express route metadata when available so metrics aggregate by template
+ * path instead of raw ids or codes.
+ *
+ * @param {import("express").Request} req
+ * @returns {string}
+ */
 function normalizeRoute(req) {
   if (req.route?.path) {
     const basePath = req.baseUrl || "";
@@ -78,6 +121,14 @@ function normalizeRoute(req) {
   return "unmatched";
 }
 
+/**
+ * Records one backend HTTP request in the in-memory metrics registry.
+ *
+ * @param {import("express").Request} req
+ * @param {import("express").Response} res
+ * @param {number} durationSeconds
+ * @returns {void}
+ */
 function recordHttpRequest(req, res, durationSeconds) {
   const labels = {
     method: req.method,
@@ -94,26 +145,50 @@ function recordHttpRequest(req, res, durationSeconds) {
   );
 }
 
+/**
+ * @returns {void}
+ */
 function recordShortUrlCreated() {
   incrementCounter("url_shortener_urls_created_total", {});
 }
 
+/**
+ * @param {"found"|"not_found"|"invalid"} result
+ * @returns {void}
+ */
 function recordRedirectResult(result) {
   incrementCounter("url_shortener_redirects_total", { result });
 }
 
+/**
+ * @param {"allowed"|"blocked"|"failed_open"} result
+ * @returns {void}
+ */
 function recordRateLimitDecision(result) {
   incrementCounter("url_shortener_rate_limit_requests_total", { result });
 }
 
+/**
+ * @param {string} name
+ * @returns {Map<string, {labels: Record<string, string>, value: number}>}
+ */
 function renderCounter(name) {
   return counters.get(name) || new Map();
 }
 
+/**
+ * @param {string} name
+ * @returns {Map<string, {labels: Record<string, string>, bucketCounts: number[], count: number, sum: number}>}
+ */
 function renderHistogram(name) {
   return histograms.get(name) || new Map();
 }
 
+/**
+ * Renders the current in-memory registry in Prometheus text exposition format.
+ *
+ * @returns {string}
+ */
 function getMetricsText() {
   const lines = [
     "# HELP app_info Static information about this service.",
@@ -143,6 +218,8 @@ function getMetricsText() {
   for (const metric of renderHistogram("url_shortener_http_request_duration_seconds").values()) {
     let cumulativeCount = 0;
 
+    // Prometheus histogram buckets are cumulative, so each line includes all
+    // observations up to the current upper bound.
     requestDurationBuckets.forEach((bucket, index) => {
       cumulativeCount += metric.bucketCounts[index];
       lines.push(

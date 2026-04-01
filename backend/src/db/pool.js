@@ -13,6 +13,13 @@ const {
   replicaDbPassword,
 } = require("../config");
 
+/**
+ * Creates a `pg` pool config, preferring a single connection string when the
+ * environment already provides one.
+ *
+ * @param {{host: string, port: number, database: string, user: string, password: string}} options
+ * @returns {import("pg").PoolConfig}
+ */
 function buildPoolConfig({ host, port, database, user, password }) {
   return databaseUrl
     ? { connectionString: databaseUrl }
@@ -45,6 +52,11 @@ const replicaPool = new Pool(
   }),
 );
 
+/**
+ * Closes both pools so shutdown does not hang on open database sockets.
+ *
+ * @returns {Promise<void>}
+ */
 async function closeAllPools() {
   await Promise.allSettled([primaryPool.end(), replicaPool.end()]);
 }
