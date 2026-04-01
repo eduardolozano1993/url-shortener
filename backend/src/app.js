@@ -60,6 +60,18 @@ if (hasFrontendBuild) {
   app.get("/", (_req, res) => {
     res.sendFile(path.join(frontendDistPath, "index.html"));
   });
+} else {
+  app.get("/", (_req, res) => {
+    res.json({
+      name: "url-shortener-backend",
+      ok: true,
+      endpoints: {
+        health: "/health",
+        shorten: "/shorten",
+        redirectExample: "/:code",
+      },
+    });
+  });
 }
 
 app.use((error, req, res, _next) => {

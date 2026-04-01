@@ -3,31 +3,104 @@ services:
     image: postgres:16
     container_name: url-shortener-db-primary
     environment:
-      POSTGRES_USER: ${PGUSER}
-      POSTGRES_PASSWORD: ${PGPASSWORD}
-      POSTGRES_DB: ${PGDATABASE}
+      POSTGRES_USER: ${PGUSER:-postgres}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-postgres}
+      POSTGRES_DB: ${PGDATABASE:-url_shortener}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "${PGPORT}:5432"
+      - "${PGPORT:-5432}:5432"
     volumes:
-      - postgres_primary_data:/var/lib/postgresql
+      - postgres_primary_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${PGUSER:-postgres} -d ${PGDATABASE:-url_shortener}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   db-replica:
     image: postgres:16
     container_name: url-shortener-db-replica
     environment:
-      POSTGRES_USER: ${PGREPLICA_USER}
-      POSTGRES_PASSWORD: ${PGREPLICA_PASSWORD}
-      POSTGRES_DB: ${PGREPLICA_DATABASE}
+      POSTGRES_USER: ${PGREPLICA_USER:-postgres}
+      POSTGRES_PASSWORD: ${PGREPLICA_PASSWORD:-postgres}
+      POSTGRES_DB: ${PGREPLICA_DATABASE:-url_shortener}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "${PGREPLICA_PORT}:5432"
+      - "${PGREPLICA_PORT:-5433}:5432"
     volumes:
-      - postgres_replica_data:/var/lib/postgresql
+      - postgres_replica_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${PGREPLICA_USER:-postgres} -d ${PGREPLICA_DATABASE:-url_shortener}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: url-shortener-redis
     ports:
-      - "${REDIS_PORT}:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    container_name: url-shortener-backend
+    depends_on:
+      db-primary:
+        condition: service_healthy
+      db-replica:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      PUBLIC_BASE_URL: ${BACKEND_PUBLIC_BASE_URL:-http://localhost:4000/}
+      PGHOST: db-primary
+      PGPORT: 5432
+      PGDATABASE: ${PGDATABASE:-url_shortener}
+      PGUSER: ${PGUSER:-postgres}
+      PGPASSWORD: ${PGPASSWORD:-postgres}
+      PGREPLICA_HOST: db-replica
+      PGREPLICA_PORT: 5432
+      PGREPLICA_DATABASE: ${PGREPLICA_DATABASE:-url_shortener}
+      PGREPLICA_USER: ${PGREPLICA_USER:-postgres}
+      PGREPLICA_PASSWORD: ${PGREPLICA_PASSWORD:-postgres}
+      REPLICA_SYNC_DELAY_MS: ${REPLICA_SYNC_DELAY_MS:-0}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_TTL_SECONDS: ${REDIS_TTL_SECONDS:-3600}
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: url-shortener-frontend
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    restart: unless-stopped
 
 volumes:
   postgres_primary_data:

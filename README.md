@@ -96,19 +96,103 @@ Example response:
 }
 ```
 
-## Infrastructure
+## Docker
 
-Run PostgreSQL primary, PostgreSQL replica, and Redis with Docker Compose:
+The Docker setup now runs the full stack:
+
+- Frontend on `http://localhost:8080`
+- Backend API on `http://localhost:4000`
+- PostgreSQL primary on `localhost:5432`
+- PostgreSQL replica on `localhost:5433`
+- Redis on `localhost:6379`
+
+The frontend container proxies `/shorten` and `/health` to the backend container, so the current React app works without changing browser-side URLs. The backend still exposes its own direct URL for API access and generated short links.
+
+Recommended root `.env` values for Docker:
 
 ```bash
-docker compose up -d
+BACKEND_PORT=4000
+FRONTEND_PORT=8080
+BACKEND_PUBLIC_BASE_URL=http://localhost:4000/
+PGDATABASE=url_shortener
+PGUSER=postgres
+PGPASSWORD=postgres
+PGPORT=5432
+PGREPLICA_DATABASE=url_shortener
+PGREPLICA_USER=postgres
+PGREPLICA_PASSWORD=postgres
+PGREPLICA_PORT=5433
+REPLICA_SYNC_DELAY_MS=0
+REDIS_PORT=6379
+REDIS_TTL_SECONDS=3600
+```
+
+Start everything with:
+
+```bash
+docker compose up --build -d
+```
+
+On Windows PowerShell, use the included helper script:
+
+```powershell
+.\scripts\docker.ps1 up
 ```
 
 That command starts:
 
-- `db-primary` on `5432`
-- `db-replica` on `5433`
-- `redis` on `6379`
+- `db-primary`
+- `db-replica`
+- `redis`
+- `backend`
+- `frontend`
+
+Useful checks:
+
+```bash
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f frontend
+```
+
+Equivalent PowerShell helper commands:
+
+```powershell
+.\scripts\docker.ps1 ps
+.\scripts\docker.ps1 logs
+.\scripts\docker.ps1 build
+.\scripts\docker.ps1 down
+.\scripts\docker.ps1 restart
+.\scripts\docker.ps1 reset
+```
+
+PowerShell command summary:
+
+- `.\scripts\docker.ps1 up`: build images and start the full stack in the background
+- `.\scripts\docker.ps1 down`: stop and remove containers
+- `.\scripts\docker.ps1 restart`: recreate the stack
+- `.\scripts\docker.ps1 logs`: stream Compose logs
+- `.\scripts\docker.ps1 ps`: show running services
+- `.\scripts\docker.ps1 build`: rebuild images only
+- `.\scripts\docker.ps1 reset`: remove containers and volumes, then recreate everything
+
+Optional `make` targets:
+
+- `make up`: build images and start the full stack in the background
+- `make down`: stop and remove containers
+- `make restart`: recreate the stack
+- `make logs`: stream Compose logs
+- `make ps`: show running services
+- `make build`: rebuild images only
+- `make reset`: remove containers and volumes, then recreate everything
+
+On Windows, `make` is not included by default. You do not need it for this repo because `.\scripts\docker.ps1` wraps the same Docker Compose workflow directly.
+
+Open:
+
+- Frontend UI: `http://localhost:8080`
+- Backend root: `http://localhost:4000`
+- Backend health: `http://localhost:4000/health`
 
 ## Notes
 
