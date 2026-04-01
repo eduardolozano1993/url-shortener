@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "db:migrate": "node src/db/migrate.js",
+    "db:migrate": "node src/infrastructure/database/migrate.js",
     "test": "node --test"
   },
   "dependencies": {

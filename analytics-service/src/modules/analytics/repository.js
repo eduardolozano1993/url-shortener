@@ -1,4 +1,4 @@
-const { analyticsPool } = require("../db/pool");
+const { analyticsPool } = require("../../infrastructure/database/pool");
 
 /**
  * Persists an analytics click and updates the aggregate tables inside the same

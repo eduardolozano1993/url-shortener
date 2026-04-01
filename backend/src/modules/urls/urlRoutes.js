@@ -7,11 +7,11 @@ const {
   validateShortCode,
 } = require("./urlSecurity");
 const { publicBaseUrl } = require("../../config");
-const analyticsPublisher = require("../../queue/analyticsPublisher");
+const analyticsPublisher = require("../../infrastructure/messaging/analyticsPublisher");
 const {
   recordRedirectResult,
   recordShortUrlCreated,
-} = require("../../monitoring/metrics");
+} = require("../../infrastructure/metrics/metrics");
 
 /**
  * HTTP routes for creating short URLs and resolving redirect codes.

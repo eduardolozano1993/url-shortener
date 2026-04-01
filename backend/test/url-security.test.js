@@ -9,21 +9,21 @@ function clearModule(modulePath) {
 function loadAppWithMocks() {
   process.env.PUBLIC_BASE_URL = "https://sho.rt/";
 
-  clearModule("../src/app");
+  clearModule("../src/bootstrap/app");
   clearModule("../src/config");
-  clearModule("../src/features/urls/urlRoutes");
-  clearModule("../src/cache/redisClient");
-  clearModule("../src/features/urls/urlRepository");
-  clearModule("../src/queue/analyticsPublisher");
+  clearModule("../src/modules/urls/urlRoutes");
+  clearModule("../src/infrastructure/cache/redisClient");
+  clearModule("../src/modules/urls/urlRepository");
+  clearModule("../src/infrastructure/messaging/analyticsPublisher");
 
-  const redisClient = require("../src/cache/redisClient");
+  const redisClient = require("../src/infrastructure/cache/redisClient");
   redisClient.connectRedis = async () => ({
     async eval() {
       return 1;
     },
   });
 
-  const repository = require("../src/features/urls/urlRepository");
+  const repository = require("../src/modules/urls/urlRepository");
   repository.createShortUrl = async (originalUrl) => ({
     code: "abc123",
     createdAt: new Date("2026-03-31T00:00:00.000Z").toISOString(),
@@ -37,11 +37,11 @@ function loadAppWithMocks() {
     originalUrl: "https://example.com/",
   });
 
-  const analyticsPublisher = require("../src/queue/analyticsPublisher");
+  const analyticsPublisher = require("../src/infrastructure/messaging/analyticsPublisher");
   analyticsPublisher.publishUrlClicked = async () => null;
 
   return {
-    app: require("../src/app"),
+    app: require("../src/bootstrap/app"),
     repository,
     analyticsPublisher,
   };
@@ -74,7 +74,7 @@ async function withServer(app, callback) {
 }
 
 test("normalizeOriginalUrl accepts http and https, rejects unsafe protocols", async () => {
-  const { normalizeOriginalUrl } = require("../src/features/urls/urlSecurity");
+  const { normalizeOriginalUrl } = require("../src/modules/urls/urlSecurity");
 
   assert.equal(normalizeOriginalUrl("https://example.com?a=1").toString(), "https://example.com/?a=1");
   assert.equal(normalizeOriginalUrl("http://example.com/path").toString(), "http://example.com/path");

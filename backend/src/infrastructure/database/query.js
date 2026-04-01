@@ -1,4 +1,4 @@
-const { replicaSyncDelayMs } = require("../config");
+const { replicaSyncDelayMs } = require("../../config");
 const { primaryPool, replicaPool } = require("./pool");
 
 /**

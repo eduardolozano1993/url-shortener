@@ -12,14 +12,13 @@ const {
   rabbitMqUrl,
   rabbitMqUser,
   rabbitMqVhost,
-} = require("../config");
+} = require("../../config");
 
 let connectionPromise = null;
 let channelPromise = null;
 
 /**
- * Builds the RabbitMQ connection URL from either a ready-made URL or the
- * individual connection parts in the environment.
+ * Builds the connection URL used by the analytics consumer.
  *
  * @returns {string}
  */
@@ -36,7 +35,7 @@ function buildConnectionUrl() {
 }
 
 /**
- * Opens a RabbitMQ connection and clears cached promises when the broker drops.
+ * Opens the shared RabbitMQ connection and resets cached state if it drops.
  *
  * @returns {Promise<import("amqplib").Connection>}
  */
@@ -54,8 +53,6 @@ async function createConnection() {
 }
 
 /**
- * Returns the shared RabbitMQ connection promise.
- *
  * @returns {Promise<import("amqplib").Connection>}
  */
 async function getConnection() {
@@ -67,7 +64,7 @@ async function getConnection() {
 }
 
 /**
- * Declares the exchanges and queues used by the analytics pipeline.
+ * Declares the exchange and queues consumed by the analytics worker.
  *
  * @param {import("amqplib").Channel} channel
  * @returns {Promise<void>}
@@ -90,7 +87,7 @@ async function configureTopology(channel) {
 }
 
 /**
- * Returns a cached channel after ensuring the queue topology exists.
+ * Returns the shared channel after ensuring topology is ready.
  *
  * @returns {Promise<import("amqplib").Channel>}
  */
@@ -114,7 +111,7 @@ async function getChannel() {
 }
 
 /**
- * Gracefully closes the RabbitMQ connection during shutdown.
+ * Closes the connection and clears cached promises for shutdown or restart.
  *
  * @returns {Promise<void>}
  */

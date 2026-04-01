@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const db = require("../../db/query");
+const db = require("../../infrastructure/database/query");
 const { cacheUrl, getCachedUrl } = require("./urlCache");
 const { summarizeUrl } = require("./urlSecurity");
 

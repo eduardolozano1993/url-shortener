@@ -4,7 +4,7 @@ const {
   redisHost,
   redisPort,
   redisPassword,
-} = require("../config");
+} = require("../../config");
 
 let client;
 let connectPromise;

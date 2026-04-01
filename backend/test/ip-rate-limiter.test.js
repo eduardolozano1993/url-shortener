@@ -22,16 +22,16 @@ function createFakeRedisClient() {
 function loadAppWithMocks(options = {}) {
   process.env.PUBLIC_BASE_URL = "https://sho.rt/";
 
-  clearModule("../src/app");
+  clearModule("../src/bootstrap/app");
   clearModule("../src/config");
-  clearModule("../src/features/urls/urlRoutes");
-  clearModule("../src/cache/redisClient");
-  clearModule("../src/features/urls/urlRepository");
-  clearModule("../src/queue/analyticsPublisher");
-  clearModule("../src/rateLimit/ipRateLimiter");
-  clearModule("../src/monitoring/metrics");
+  clearModule("../src/modules/urls/urlRoutes");
+  clearModule("../src/infrastructure/cache/redisClient");
+  clearModule("../src/modules/urls/urlRepository");
+  clearModule("../src/infrastructure/messaging/analyticsPublisher");
+  clearModule("../src/infrastructure/http/ipRateLimiter");
+  clearModule("../src/infrastructure/metrics/metrics");
 
-  const redisClientModule = require("../src/cache/redisClient");
+  const redisClientModule = require("../src/infrastructure/cache/redisClient");
   const fakeRedisClient = options.fakeRedisClient || createFakeRedisClient();
   redisClientModule.connectRedis = async () => {
     if (options.redisError) {
@@ -41,7 +41,7 @@ function loadAppWithMocks(options = {}) {
     return fakeRedisClient;
   };
 
-  const repository = require("../src/features/urls/urlRepository");
+  const repository = require("../src/modules/urls/urlRepository");
   repository.createShortUrl = async (originalUrl) => ({
     code: "abc123",
     createdAt: new Date("2026-03-31T00:00:00.000Z").toISOString(),
@@ -55,11 +55,11 @@ function loadAppWithMocks(options = {}) {
     originalUrl: "https://example.com/",
   });
 
-  const analyticsPublisher = require("../src/queue/analyticsPublisher");
+  const analyticsPublisher = require("../src/infrastructure/messaging/analyticsPublisher");
   analyticsPublisher.publishUrlClicked = async () => null;
 
   return {
-    app: require("../src/app"),
+    app: require("../src/bootstrap/app"),
     fakeRedisClient,
   };
 }
@@ -134,7 +134,7 @@ test("rate limit window helpers reset on the next UTC hour", () => {
   const {
     getCurrentWindowKey,
     getSecondsUntilNextWindow,
-  } = require("../src/rateLimit/ipRateLimiter");
+  } = require("../src/infrastructure/http/ipRateLimiter");
 
   const nearHourEnd = new Date("2026-04-01T10:59:59.250Z");
   const nextHour = new Date("2026-04-01T11:00:00.250Z");

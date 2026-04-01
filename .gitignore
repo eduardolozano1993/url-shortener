@@ -2,7 +2,9 @@ node_modules/
 .env
 frontend/dist/
 backend/node_modules/
+backend/.npm-cache/
 frontend/node_modules/
 analytics-service/node_modules/
 analytics-ui/node_modules/
 analytics-ui/dist/
+npm-debug.log

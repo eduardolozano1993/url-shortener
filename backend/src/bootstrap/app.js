@@ -1,11 +1,14 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const express = require("express");
-const urlRoutes = require("./features/urls/urlRoutes");
-const { connectRedis } = require("./cache/redisClient");
-const { createFlowLogger } = require("./logging/logger");
-const { getMetricsText, recordHttpRequest } = require("./monitoring/metrics");
-const { createIpRateLimiter } = require("./rateLimit/ipRateLimiter");
+const urlRoutes = require("../modules/urls/urlRoutes");
+const { connectRedis } = require("../infrastructure/cache/redisClient");
+const { createFlowLogger } = require("../infrastructure/logging/logger");
+const {
+  getMetricsText,
+  recordHttpRequest,
+} = require("../infrastructure/metrics/metrics");
+const { createIpRateLimiter } = require("../infrastructure/http/ipRateLimiter");
 
 /**
  * Main HTTP application for the shortener backend.

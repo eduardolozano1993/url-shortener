@@ -1,5 +1,5 @@
 const { redisTtlSeconds } = require("../../config");
-const { redisEnabled } = require("../../cache/redisClient");
+const { redisEnabled } = require("../../infrastructure/cache/redisClient");
 
 const CACHE_KEY_PREFIX = "short-url:";
 

@@ -1,20 +1,12 @@
-const app = require("./app");
-const { port } = require("./config");
-const { closePool } = require("./db/pool");
-const { createFlowLogger } = require("./logging/logger");
-const { closeRabbitMq } = require("./queue/rabbitMq");
-const { startConsumer } = require("./analytics/consumer");
+const { createFlowLogger } = require("./infrastructure/logging/logger");
+const { startApiServer } = require("./api/server");
+const { startWorker } = require("./worker/server");
 
 const logger = createFlowLogger("ANALYTICS_SERVICE");
-
-const server = app.listen(port, () => {
-  logger.success("Analytics service listening", { port });
-});
-
-startConsumer(logger.child("CONSUMER")).catch((error) => {
-  logger.error("Failed to start analytics consumer", { message: error.message });
-  process.exit(1);
-});
+const runtime = {
+  api: null,
+  worker: null,
+};
 
 /**
  * Stops the HTTP server and the background consumer dependencies in a safe order.
@@ -24,11 +16,11 @@ startConsumer(logger.child("CONSUMER")).catch((error) => {
  */
 async function shutdown(signal) {
   logger.warn("Stopping analytics service", { signal });
-  server.close(async () => {
-    await closeRabbitMq();
-    await closePool();
-    process.exit(0);
-  });
+  await Promise.allSettled([
+    runtime.api?.stop?.(),
+    runtime.worker?.stop?.(),
+  ]);
+  process.exit(0);
 }
 
 process.on("SIGINT", () => {
@@ -36,6 +28,14 @@ process.on("SIGINT", () => {
     logger.error("Shutdown error", { message: error.message });
     process.exit(1);
   });
+});
+
+(async () => {
+  runtime.api = await startApiServer(logger.child("API"));
+  runtime.worker = await startWorker(logger.child("WORKER"));
+})().catch((error) => {
+  logger.error("Failed to start analytics service", { message: error.message });
+  process.exit(1);
 });
 
 process.on("SIGTERM", () => {

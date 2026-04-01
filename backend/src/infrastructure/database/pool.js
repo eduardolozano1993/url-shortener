@@ -11,7 +11,7 @@ const {
   replicaDbName,
   replicaDbUser,
   replicaDbPassword,
-} = require("../config");
+} = require("../../config");
 
 /**
  * Creates a `pg` pool config, preferring a single connection string when the

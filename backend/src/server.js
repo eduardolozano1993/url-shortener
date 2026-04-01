@@ -1,9 +1,11 @@
-const app = require("./app");
+const app = require("./bootstrap/app");
 const { port } = require("./config");
-const { disconnectRedis } = require("./cache/redisClient");
-const { closeAnalyticsPublisher } = require("./queue/analyticsPublisher");
-const { closeRabbitMq } = require("./queue/rabbitMq");
-const { closeAllPools } = require("./db/pool");
+const { disconnectRedis } = require("./infrastructure/cache/redisClient");
+const {
+  closeAnalyticsPublisher,
+} = require("./infrastructure/messaging/analyticsPublisher");
+const { closeRabbitMq } = require("./infrastructure/messaging/rabbitMq");
+const { closeAllPools } = require("./infrastructure/database/pool");
 
 const server = app.listen(port, () => {
   console.log(`Server listening on port ${port}`);

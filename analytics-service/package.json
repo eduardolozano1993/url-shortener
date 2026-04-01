@@ -6,8 +6,13 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "node --watch src/server.js",
+    "dev:api": "node --watch src/api/server.js",
+    "dev:worker": "node --watch src/worker/server.js",
     "start": "node src/server.js",
-    "db:migrate": "node src/db/migrate.js"
+    "start:api": "node src/api/server.js",
+    "start:worker": "node src/worker/server.js",
+    "db:migrate": "node src/infrastructure/database/migrate.js",
+    "test": "node --test"
   },
   "dependencies": {
     "amqplib": "^0.10.5",

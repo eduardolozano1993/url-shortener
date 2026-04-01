@@ -4,9 +4,12 @@ const {
   getOverview,
   getReferrersByCode,
   getSummaryByCode,
-} = require("./analytics/repository");
-const { createFlowLogger } = require("./logging/logger");
-const { getMetricsText, recordHttpRequest } = require("./monitoring/metrics");
+} = require("../modules/analytics/repository");
+const { createFlowLogger } = require("../infrastructure/logging/logger");
+const {
+  getMetricsText,
+  recordHttpRequest,
+} = require("../infrastructure/metrics/metrics");
 
 /**
  * HTTP application for querying analytics aggregates.

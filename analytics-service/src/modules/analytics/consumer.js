@@ -3,9 +3,9 @@ const {
   analyticsFailedQueue,
   analyticsMaxRetries,
   analyticsRetryQueue,
-} = require("../config");
-const { recordAnalyticsEvent } = require("../monitoring/metrics");
-const { getChannel } = require("../queue/rabbitMq");
+} = require("../../config");
+const { recordAnalyticsEvent } = require("../../infrastructure/metrics/metrics");
+const { getChannel } = require("../../infrastructure/messaging/rabbitMq");
 const { recordClick } = require("./repository");
 
 /**

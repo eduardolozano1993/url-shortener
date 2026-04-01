@@ -3,7 +3,7 @@ const {
   analyticsClickedRoutingKey,
   analyticsExchange,
   analyticsMaxRetries,
-} = require("../config");
+} = require("../../config");
 const { getChannel } = require("./rabbitMq");
 
 /**

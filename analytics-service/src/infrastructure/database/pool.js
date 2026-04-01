@@ -6,7 +6,7 @@ const {
   analyticsDbName,
   analyticsDbUser,
   analyticsDbPassword,
-} = require("../config");
+} = require("../../config");
 
 /**
  * Shared PostgreSQL pool for analytics writes and reads.

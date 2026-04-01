@@ -1,6 +1,6 @@
 const { connectRedis } = require("../cache/redisClient");
 const { createFlowLogger } = require("../logging/logger");
-const { recordRateLimitDecision } = require("../monitoring/metrics");
+const { recordRateLimitDecision } = require("../metrics/metrics");
 
 const RATE_LIMIT = 100;
 const WINDOW_SECONDS = 60 * 60;
