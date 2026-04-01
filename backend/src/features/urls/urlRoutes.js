@@ -8,6 +8,10 @@ const {
 } = require("./urlSecurity");
 const { publicBaseUrl } = require("../../config");
 const analyticsPublisher = require("../../queue/analyticsPublisher");
+const {
+  recordRedirectResult,
+  recordShortUrlCreated,
+} = require("../../monitoring/metrics");
 
 const router = express.Router();
 
@@ -40,6 +44,7 @@ router.post("/shorten", async (req, res, next) => {
     );
 
     logger.success("Short URL generated", url);
+    recordShortUrlCreated();
     return res.status(201).json({
       code: url.code,
       originalUrl: url.originalUrl,
@@ -57,6 +62,7 @@ router.get("/:code", async (req, res, next) => {
     logger.start("Starting redirect lookup", { code: req.params.code });
 
     if (!validateShortCode(req.params.code)) {
+      recordRedirectResult("invalid");
       logger.warn("Short code validation failed", {
         code: req.params.code,
       });
@@ -66,10 +72,12 @@ router.get("/:code", async (req, res, next) => {
     const url = await repository.getUrlByCode(req.params.code, req.redisClient, logger);
 
     if (!url) {
+      recordRedirectResult("not_found");
       logger.warn("Short code not found", { code: req.params.code });
       return res.status(404).json({ error: "Short URL not found" });
     }
 
+    recordRedirectResult("found");
     logger.success("Redirect target resolved", url);
     await analyticsPublisher.publishUrlClicked(req, url, logger.child("EVENT"));
     return res.redirect(url.originalUrl);

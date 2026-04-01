@@ -6,12 +6,19 @@ const {
   getSummaryByCode,
 } = require("./analytics/repository");
 const { createFlowLogger } = require("./logging/logger");
+const { getMetricsText, recordHttpRequest } = require("./monitoring/metrics");
 
 const app = express();
 
 app.use(express.json({ limit: "10kb" }));
 
+app.get("/metrics", (_req, res) => {
+  res.setHeader("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
+  res.send(getMetricsText());
+});
+
 app.use((req, res, next) => {
+  const requestStart = process.hrtime.bigint();
   req.logger = createFlowLogger("ANALYTICS_HTTP");
   req.logger.start("Incoming request", {
     method: req.method,
@@ -27,7 +34,10 @@ app.use((req, res, next) => {
   }
 
   res.on("finish", () => {
+    const durationSeconds = Number(process.hrtime.bigint() - requestStart) / 1_000_000_000;
+    recordHttpRequest(req, res, durationSeconds);
     req.logger.success("Request completed", {
+      durationMs: Number((durationSeconds * 1000).toFixed(2)),
       method: req.method,
       path: req.originalUrl,
       statusCode: res.statusCode,

@@ -4,6 +4,7 @@ const {
   analyticsMaxRetries,
   analyticsRetryQueue,
 } = require("../config");
+const { recordAnalyticsEvent } = require("../monitoring/metrics");
 const { getChannel } = require("../queue/rabbitMq");
 const { recordClick } = require("./repository");
 
@@ -37,6 +38,7 @@ async function routeForRetry(channel, message, event, error, logger) {
       retries: retryCount,
       urlCode: event?.urlCode,
     });
+    recordAnalyticsEvent("failed");
     return;
   }
 
@@ -58,6 +60,7 @@ async function routeForRetry(channel, message, event, error, logger) {
     retries: retryCount + 1,
     urlCode: event?.urlCode,
   });
+  recordAnalyticsEvent("retry");
 }
 
 async function startConsumer(logger) {
@@ -85,6 +88,7 @@ async function startConsumer(logger) {
       });
       await recordClick(event, logger.child("CLICK"));
       channel.ack(message);
+      recordAnalyticsEvent("success");
     } catch (error) {
       logger.error("Analytics consumer failed to process event", {
         eventId: event?.eventId,

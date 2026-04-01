@@ -147,6 +147,8 @@ The Docker setup now runs the full stack:
 - Redis on `localhost:6379`
 - RabbitMQ on `localhost:5672`
 - RabbitMQ management UI on `http://localhost:15672`
+- Prometheus on `http://localhost:9090`
+- Grafana on `http://localhost:3001`
 
 Phase 8 adds a separate analytics service and dashboard. Redirect requests now publish a `url.clicked` event from the main app, and the analytics service consumes those events, stores analytics data, and serves reporting endpoints without slowing redirects.
 
@@ -179,6 +181,10 @@ RABBITMQ_USER=guest
 RABBITMQ_PASSWORD=guest
 ANALYTICS_RETRY_DELAY_MS=5000
 ANALYTICS_MAX_RETRIES=3
+PROMETHEUS_PORT=9090
+GRAFANA_PORT=3001
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=admin
 ```
 
 Start everything with:
@@ -208,6 +214,8 @@ That command starts:
 - `load-balancer`
 - `frontend`
 - `analytics-ui`
+- `prometheus`
+- `grafana`
 
 Useful checks:
 
@@ -260,6 +268,8 @@ Open:
 - Load balancer health: `http://localhost:4000/health`
 - Analytics service health: `http://localhost:4100/health`
 - RabbitMQ UI: `http://localhost:15672`
+- Prometheus UI: `http://localhost:9090`
+- Grafana UI: `http://localhost:3001`
 
 Analytics service endpoints:
 
@@ -276,6 +286,38 @@ Phase 8 queue and analytics notes:
 - Aggregates are maintained in `analytics_url_counters`, `analytics_daily_clicks`, and `analytics_referrer_counters`
 - Failed analytics writes are retried through a retry queue and eventually moved to a failed queue with error metadata
 - `analytics-ui` uses a temporary hardcoded `admin` / `admin` login and proxies API requests to the analytics service
+
+## Monitoring
+
+Prometheus and Grafana are included in the Docker stack and start automatically with `docker compose up --build -d` or `.\scripts\docker.ps1 up`.
+
+Grafana is pre-provisioned with:
+
+- a default Prometheus datasource
+- a `URL Shortener Overview` dashboard under the `URL Shortener` folder
+
+Default Grafana credentials:
+
+- username: `admin`
+- password: `admin`
+
+Prometheus scrape targets:
+
+- `backend-1:4000/metrics`
+- `backend-2:4000/metrics`
+- `analytics-service:4100/metrics`
+- `prometheus:9090/metrics`
+
+Application metrics exposed by the Node services include:
+
+- total backend HTTP requests by route, method, and status code
+- backend request latency histogram
+- total shortened URLs created
+- redirect outcomes grouped as `found`, `not_found`, or `invalid`
+- analytics API HTTP request counts and latency histogram
+- analytics consumer outcomes grouped as `success`, `retry`, or `failed`
+
+If you change Grafana credentials in `.env`, recreate the `grafana` container if the previous admin account has already been initialized inside the Grafana volume.
 
 ## Notes
 

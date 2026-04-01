@@ -37,7 +37,7 @@ x-backend-common: &backend-common
     RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
     ANALYTICS_RETRY_DELAY_MS: ${ANALYTICS_RETRY_DELAY_MS:-5000}
     ANALYTICS_MAX_RETRIES: ${ANALYTICS_MAX_RETRIES:-3}
-    restart: unless-stopped
+  restart: unless-stopped
 
 x-analytics-common: &analytics-common
   image: url-shortener-analytics-service:latest
@@ -264,8 +264,43 @@ services:
       - "${ANALYTICS_UI_PORT:-8081}:80"
     restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:v2.53.1
+    depends_on:
+      - backend-1
+      - backend-2
+      - analytics-service
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss:11.1.0
+    depends_on:
+      - prometheus
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+
 volumes:
   postgres_primary_data:
   postgres_replica_data:
   postgres_analytics_data:
   redis_data:
+  prometheus_data:
+  grafana_data:

@@ -4,6 +4,7 @@ const express = require("express");
 const urlRoutes = require("./features/urls/urlRoutes");
 const { connectRedis } = require("./cache/redisClient");
 const { createFlowLogger } = require("./logging/logger");
+const { getMetricsText, recordHttpRequest } = require("./monitoring/metrics");
 
 const app = express();
 const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
@@ -20,7 +21,13 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/metrics", (_req, res) => {
+  res.setHeader("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
+  res.send(getMetricsText());
+});
+
 app.use((req, res, next) => {
+  const requestStart = process.hrtime.bigint();
   req.logger = createFlowLogger("HTTP");
   req.logger.start("Incoming request", {
     bodyKeys:
@@ -30,7 +37,10 @@ app.use((req, res, next) => {
   });
 
   res.on("finish", () => {
+    const durationSeconds = Number(process.hrtime.bigint() - requestStart) / 1_000_000_000;
+    recordHttpRequest(req, res, durationSeconds);
     req.logger.success("Request completed", {
+      durationMs: Number((durationSeconds * 1000).toFixed(2)),
       method: req.method,
       path: req.originalUrl,
       statusCode: res.statusCode,
