@@ -5,17 +5,15 @@ const urlRoutes = require("./features/urls/urlRoutes");
 const { connectRedis } = require("./cache/redisClient");
 const { createFlowLogger } = require("./logging/logger");
 const { getMetricsText, recordHttpRequest } = require("./monitoring/metrics");
+const { createIpRateLimiter } = require("./rateLimit/ipRateLimiter");
 
 const app = express();
 const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
 const hasFrontendBuild = fs.existsSync(frontendDistPath);
+const ipRateLimiter = createIpRateLimiter();
 
 app.set("trust proxy", true);
 app.use(express.json({ limit: "10kb" }));
-
-if (hasFrontendBuild) {
-  app.use(express.static(frontendDistPath));
-}
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true });
@@ -25,6 +23,8 @@ app.get("/metrics", (_req, res) => {
   res.setHeader("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
   res.send(getMetricsText());
 });
+
+app.use(ipRateLimiter);
 
 app.use((req, res, next) => {
   const requestStart = process.hrtime.bigint();
@@ -68,6 +68,8 @@ app.use(async (req, _res, next) => {
 app.use(urlRoutes);
 
 if (hasFrontendBuild) {
+  app.use(express.static(frontendDistPath));
+
   app.get("/", (_req, res) => {
     res.sendFile(path.join(frontendDistPath, "index.html"));
   });

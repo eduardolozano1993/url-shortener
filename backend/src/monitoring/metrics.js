@@ -102,6 +102,10 @@ function recordRedirectResult(result) {
   incrementCounter("url_shortener_redirects_total", { result });
 }
 
+function recordRateLimitDecision(result) {
+  incrementCounter("url_shortener_rate_limit_requests_total", { result });
+}
+
 function renderCounter(name) {
   return counters.get(name) || new Map();
 }
@@ -183,12 +187,24 @@ function getMetricsText() {
     lines.push(`url_shortener_redirects_total${renderLabels(metric.labels)} ${metric.value}`);
   }
 
+  lines.push(
+    "# HELP url_shortener_rate_limit_requests_total Backend IP rate limit decisions grouped by result.",
+    "# TYPE url_shortener_rate_limit_requests_total counter",
+  );
+
+  for (const metric of renderCounter("url_shortener_rate_limit_requests_total").values()) {
+    lines.push(
+      `url_shortener_rate_limit_requests_total${renderLabels(metric.labels)} ${metric.value}`,
+    );
+  }
+
   return `${lines.join("\n")}\n`;
 }
 
 module.exports = {
   getMetricsText,
   recordHttpRequest,
+  recordRateLimitDecision,
   recordRedirectResult,
   recordShortUrlCreated,
 };

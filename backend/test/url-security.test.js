@@ -17,7 +17,11 @@ function loadAppWithMocks() {
   clearModule("../src/queue/analyticsPublisher");
 
   const redisClient = require("../src/cache/redisClient");
-  redisClient.connectRedis = async () => null;
+  redisClient.connectRedis = async () => ({
+    async eval() {
+      return 1;
+    },
+  });
 
   const repository = require("../src/features/urls/urlRepository");
   repository.createShortUrl = async (originalUrl) => ({

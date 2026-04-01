@@ -314,10 +314,23 @@ Application metrics exposed by the Node services include:
 - backend request latency histogram
 - total shortened URLs created
 - redirect outcomes grouped as `found`, `not_found`, or `invalid`
+- backend IP rate-limit decisions grouped as `allowed`, `blocked`, or `failed_open`
 - analytics API HTTP request counts and latency histogram
 - analytics consumer outcomes grouped as `success`, `retry`, or `failed`
 
 If you change Grafana credentials in `.env`, recreate the `grafana` container if the previous admin account has already been initialized inside the Grafana volume.
+
+## Rate Limiting
+
+The backend enforces an IP-based limit of `100` requests per hour using Redis as a shared counter, so the quota is consistent across both backend containers.
+
+Rate limiting behavior:
+
+- applies to backend public traffic such as `/`, `/shorten`, and `/:code`
+- does not apply to `/health` or `/metrics`
+- returns `429` with `{ "error": "Rate limit exceeded" }` when the quota is exhausted
+- includes `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers on limited requests
+- fails open if Redis is temporarily unavailable so the backend stays reachable
 
 ## Notes
 
