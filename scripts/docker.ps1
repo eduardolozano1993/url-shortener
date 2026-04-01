@@ -26,10 +26,10 @@ switch ($Command) {
     $composeArgs += @("up", "--build", "-d")
   }
   "down" {
-    $composeArgs += @("down")
+    $composeArgs += @("down", "--remove-orphans")
   }
   "restart" {
-    & $dockerExe @composeArgs down
+    & $dockerExe @composeArgs down --remove-orphans
     if ($LASTEXITCODE -ne 0) {
       exit $LASTEXITCODE
     }
@@ -45,7 +45,7 @@ switch ($Command) {
     $composeArgs += @("build")
   }
   "reset" {
-    & $dockerExe @composeArgs down -v
+    & $dockerExe @composeArgs down -v --remove-orphans
     if ($LASTEXITCODE -ne 0) {
       exit $LASTEXITCODE
     }

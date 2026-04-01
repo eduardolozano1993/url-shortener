@@ -101,19 +101,19 @@ Example response:
 The Docker setup now runs the full stack:
 
 - Frontend on `http://localhost:8080`
-- Backend API on `http://localhost:4000`
+- NGINX load balancer on `http://localhost:4000`
 - PostgreSQL primary on `localhost:5432`
 - PostgreSQL replica on `localhost:5433`
 - Redis on `localhost:6379`
 
-The frontend container proxies `/shorten` and `/health` to the backend container, so the current React app works without changing browser-side URLs. The backend still exposes its own direct URL for API access and generated short links.
+Phase 6 now adds two backend app instances behind an NGINX load balancer using round-robin distribution. The frontend container proxies `/shorten` and `/health` to the load balancer, and generated short links also point to the load balancer URL.
 
 Recommended root `.env` values for Docker:
 
 ```bash
-BACKEND_PORT=4000
 FRONTEND_PORT=8080
-BACKEND_PUBLIC_BASE_URL=http://localhost:4000/
+LOAD_BALANCER_PORT=4000
+LOAD_BALANCER_PUBLIC_BASE_URL=http://localhost:4000/
 PGDATABASE=url_shortener
 PGUSER=postgres
 PGPASSWORD=postgres
@@ -144,7 +144,10 @@ That command starts:
 - `db-primary`
 - `db-replica`
 - `redis`
-- `backend`
+- `migrator`
+- `backend-1`
+- `backend-2`
+- `load-balancer`
 - `frontend`
 
 Useful checks:
@@ -191,8 +194,15 @@ On Windows, `make` is not included by default. You do not need it for this repo 
 Open:
 
 - Frontend UI: `http://localhost:8080`
-- Backend root: `http://localhost:4000`
-- Backend health: `http://localhost:4000/health`
+- Load balancer root: `http://localhost:4000`
+- Load balancer health: `http://localhost:4000/health`
+
+Phase 6 load balancing notes:
+
+- NGINX distributes requests with the default round-robin strategy
+- `backend-1` and `backend-2` are stateless app instances
+- `migrator` runs database migrations once before the backend instances start
+- The load balancer uses a single NGINX worker in this local setup so round-robin behavior is easier to observe consistently
 
 ## Notes
 
