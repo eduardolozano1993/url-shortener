@@ -45,7 +45,12 @@ const replicaPool = new Pool(
   }),
 );
 
+async function closeAllPools() {
+  await Promise.allSettled([primaryPool.end(), replicaPool.end()]);
+}
+
 module.exports = {
   primaryPool,
   replicaPool,
+  closeAllPools,
 };

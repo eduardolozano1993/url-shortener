@@ -9,7 +9,9 @@ x-backend-common: &backend-common
       condition: service_healthy
     redis:
       condition: service_healthy
-    migrator:
+    rabbitmq:
+      condition: service_healthy
+    core-migrator:
       condition: service_completed_successfully
   environment:
     PORT: 4000
@@ -29,6 +31,38 @@ x-backend-common: &backend-common
     REDIS_PORT: 6379
     REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     REDIS_TTL_SECONDS: ${REDIS_TTL_SECONDS:-3600}
+    RABBITMQ_HOST: rabbitmq
+    RABBITMQ_PORT: 5672
+    RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+    RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+    ANALYTICS_RETRY_DELAY_MS: ${ANALYTICS_RETRY_DELAY_MS:-5000}
+    ANALYTICS_MAX_RETRIES: ${ANALYTICS_MAX_RETRIES:-3}
+    restart: unless-stopped
+
+x-analytics-common: &analytics-common
+  image: url-shortener-analytics-service:latest
+  build:
+    context: ./analytics-service
+  depends_on:
+    db-analytics:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+    analytics-migrator:
+      condition: service_completed_successfully
+  environment:
+    ANALYTICS_SERVICE_PORT: 4100
+    ANALYTICS_PGHOST: db-analytics
+    ANALYTICS_PGPORT: 5432
+    ANALYTICS_PGDATABASE: ${ANALYTICS_PGDATABASE:-url_shortener_analytics}
+    ANALYTICS_PGUSER: ${ANALYTICS_PGUSER:-postgres}
+    ANALYTICS_PGPASSWORD: ${ANALYTICS_PGPASSWORD:-postgres}
+    RABBITMQ_HOST: rabbitmq
+    RABBITMQ_PORT: 5672
+    RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+    RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+    ANALYTICS_RETRY_DELAY_MS: ${ANALYTICS_RETRY_DELAY_MS:-5000}
+    ANALYTICS_MAX_RETRIES: ${ANALYTICS_MAX_RETRIES:-3}
   restart: unless-stopped
 
 services:
@@ -76,6 +110,28 @@ services:
       retries: 10
     restart: unless-stopped
 
+  db-analytics:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${ANALYTICS_PGUSER:-postgres}
+      POSTGRES_PASSWORD: ${ANALYTICS_PGPASSWORD:-postgres}
+      POSTGRES_DB: ${ANALYTICS_PGDATABASE:-url_shortener_analytics}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${ANALYTICS_PGPORT:-5434}:5432"
+    volumes:
+      - postgres_analytics_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${ANALYTICS_PGUSER:-postgres} -d ${ANALYTICS_PGDATABASE:-url_shortener_analytics}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     ports:
@@ -84,6 +140,21 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -111,12 +182,57 @@ services:
       PGREPLICA_USER: ${PGREPLICA_USER:-postgres}
       PGREPLICA_PASSWORD: ${PGREPLICA_PASSWORD:-postgres}
     command: ["npm", "run", "db:migrate"]
+    profiles: ["deprecated"]
+
+  core-migrator:
+    image: url-shortener-backend:latest
+    build:
+      context: ./backend
+    depends_on:
+      db-primary:
+        condition: service_healthy
+      db-replica:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      PGHOST: db-primary
+      PGPORT: 5432
+      PGDATABASE: ${PGDATABASE:-url_shortener}
+      PGUSER: ${PGUSER:-postgres}
+      PGPASSWORD: ${PGPASSWORD:-postgres}
+      PGREPLICA_HOST: db-replica
+      PGREPLICA_PORT: 5432
+      PGREPLICA_DATABASE: ${PGREPLICA_DATABASE:-url_shortener}
+      PGREPLICA_USER: ${PGREPLICA_USER:-postgres}
+      PGREPLICA_PASSWORD: ${PGREPLICA_PASSWORD:-postgres}
+    command: ["npm", "run", "db:migrate"]
+
+  analytics-migrator:
+    image: url-shortener-analytics-service:latest
+    build:
+      context: ./analytics-service
+    depends_on:
+      db-analytics:
+        condition: service_healthy
+    environment:
+      ANALYTICS_SERVICE_PORT: 4100
+      ANALYTICS_PGHOST: db-analytics
+      ANALYTICS_PGPORT: 5432
+      ANALYTICS_PGDATABASE: ${ANALYTICS_PGDATABASE:-url_shortener_analytics}
+      ANALYTICS_PGUSER: ${ANALYTICS_PGUSER:-postgres}
+      ANALYTICS_PGPASSWORD: ${ANALYTICS_PGPASSWORD:-postgres}
+    command: ["npm", "run", "db:migrate"]
 
   backend-1:
     <<: *backend-common
 
   backend-2:
     <<: *backend-common
+
+  analytics-service:
+    <<: *analytics-common
+    ports:
+      - "${ANALYTICS_SERVICE_PORT:-4100}:4100"
 
   load-balancer:
     image: nginx:1.27-alpine
@@ -139,7 +255,17 @@ services:
       - "${FRONTEND_PORT:-8080}:80"
     restart: unless-stopped
 
+  analytics-ui:
+    build:
+      context: ./analytics-ui
+    depends_on:
+      - analytics-service
+    ports:
+      - "${ANALYTICS_UI_PORT:-8081}:80"
+    restart: unless-stopped
+
 volumes:
   postgres_primary_data:
   postgres_replica_data:
+  postgres_analytics_data:
   redis_data:

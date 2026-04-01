@@ -8,33 +8,15 @@ Build a scalable URL shortener step by step, starting from a simple local setup 
 
 ## Tech Stack (Suggested)
 
-- Backend: Node.js (Express or NestJS)
-- Database: PostgreSQL (start simple)
+- Backend: Express - Node.js
+- Database: PostgreSQL
 - Cache: Redis
 - Queue: Kafka (later)
 - ID Generation: Custom service (later)
 
 ---
 
-# Phase 6 — Add Load Balancer (Simulated)
-
-## Objective
-
-Scale horizontally.
-
-## Add
-
-- Multiple app instances
-- Simple load balancer (NGINX or Docker round-robin)
-
-## What You Learn
-
-- Stateless services
-- Horizontal scaling
-
----
-
-# Phase 7 — Introduce Message Queue (Kafka)
+# Phase 7 — Introduce Message Queue (RabbitMQ)
 
 ## Objective
 
@@ -42,7 +24,7 @@ Decouple analytics and async processing.
 
 ## Add
 
-- Kafka (or simpler: RabbitMQ)
+- RabbitMQ
 
 ## Flow
 
@@ -112,15 +94,5 @@ Decouple ID creation.
 ## What You Learn
 
 - Real-world production concerns
-
----
-
-# Suggested Learning Flow
-
-Do NOT rush. Only move forward when:
-
-- You can explain the system
-- You can debug it
-- You understand tradeoffs
 
 ---

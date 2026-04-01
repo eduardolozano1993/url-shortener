@@ -4,9 +4,11 @@
   "scripts": {
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
+    "dev:analytics-service": "npm --prefix analytics-service run dev",
+    "dev:analytics-ui": "npm --prefix analytics-ui run dev",
     "start": "npm --prefix backend run start",
-    "db:migrate": "npm --prefix backend run db:migrate",
+    "db:migrate": "npm --prefix backend run db:migrate && npm --prefix analytics-service run db:migrate",
     "test": "npm --prefix backend run test",
-    "build": "npm --prefix frontend run build"
+    "build": "npm --prefix frontend run build && npm --prefix analytics-ui run build"
   }
 }

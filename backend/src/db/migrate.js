@@ -17,8 +17,7 @@ async function getExecutedMigrations(pool) {
   return new Set(result.rows.map((row) => row.filename));
 }
 
-async function runForPool(pool, label) {
-  const migrationsDir = path.join(__dirname, "migrations");
+async function runForPool(pool, label, migrationsDir) {
   const filenames = (await fs.readdir(migrationsDir)).sort();
 
   await ensureMigrationsTable(pool);
@@ -49,8 +48,8 @@ async function runForPool(pool, label) {
 }
 
 async function run() {
-  await runForPool(primaryPool, "primary");
-  await runForPool(replicaPool, "replica");
+  await runForPool(primaryPool, "primary", path.join(__dirname, "migrations", "core"));
+  await runForPool(replicaPool, "replica", path.join(__dirname, "migrations", "core"));
 }
 
 run()

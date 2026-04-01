@@ -7,6 +7,7 @@ const {
   validateShortCode,
 } = require("./urlSecurity");
 const { publicBaseUrl } = require("../../config");
+const analyticsPublisher = require("../../queue/analyticsPublisher");
 
 const router = express.Router();
 
@@ -70,6 +71,7 @@ router.get("/:code", async (req, res, next) => {
     }
 
     logger.success("Redirect target resolved", url);
+    await analyticsPublisher.publishUrlClicked(req, url, logger.child("EVENT"));
     return res.redirect(url.originalUrl);
   } catch (error) {
     return next(error);

@@ -44,4 +44,21 @@ module.exports = {
   redisPort: Number(process.env.REDIS_PORT || 6379),
   redisPassword: process.env.REDIS_PASSWORD,
   redisTtlSeconds: Number(process.env.REDIS_TTL_SECONDS || 3600),
+  rabbitMqUrl: process.env.RABBITMQ_URL,
+  rabbitMqHost: process.env.RABBITMQ_HOST || "localhost",
+  rabbitMqPort: Number(process.env.RABBITMQ_PORT || 5672),
+  rabbitMqUser: process.env.RABBITMQ_USER || "guest",
+  rabbitMqPassword: process.env.RABBITMQ_PASSWORD || "guest",
+  rabbitMqVhost: process.env.RABBITMQ_VHOST || "/",
+  analyticsExchange: process.env.ANALYTICS_EXCHANGE || "analytics.events",
+  analyticsClickedRoutingKey:
+    process.env.ANALYTICS_CLICKED_ROUTING_KEY || "url.clicked",
+  analyticsClickedQueue:
+    process.env.ANALYTICS_CLICKED_QUEUE || "analytics.url-clicked",
+  analyticsRetryQueue:
+    process.env.ANALYTICS_RETRY_QUEUE || "analytics.url-clicked.retry",
+  analyticsFailedQueue:
+    process.env.ANALYTICS_FAILED_QUEUE || "analytics.url-clicked.failed",
+  analyticsRetryDelayMs: Number(process.env.ANALYTICS_RETRY_DELAY_MS || 5000),
+  analyticsMaxRetries: Number(process.env.ANALYTICS_MAX_RETRIES || 3),
 };

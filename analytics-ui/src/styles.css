@@ -1,0 +1,392 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", "Avenir Next", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(255, 138, 91, 0.24), transparent 32%),
+    radial-gradient(circle at 88% 12%, rgba(77, 157, 224, 0.2), transparent 26%),
+    linear-gradient(145deg, #09131d 0%, #0f172a 45%, #1b1f3a 100%);
+  color: #edf2ff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.login-shell,
+.dashboard-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.backdrop {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(46px);
+  opacity: 0.7;
+}
+
+.glow-left {
+  top: 5rem;
+  left: -6rem;
+  width: 20rem;
+  height: 20rem;
+  background: rgba(255, 138, 91, 0.38);
+}
+
+.glow-right {
+  right: -5rem;
+  bottom: 8rem;
+  width: 24rem;
+  height: 24rem;
+  background: rgba(77, 157, 224, 0.26);
+}
+
+.login-card,
+.hero-panel,
+.panel,
+.stat-card {
+  position: relative;
+  z-index: 1;
+  background: rgba(8, 15, 26, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.login-shell {
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.login-card {
+  width: min(560px, 100%);
+  border-radius: 30px;
+  padding: 2rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.eyebrow,
+.panel-kicker,
+.stat-card span {
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffbd73;
+  font-size: 0.72rem;
+}
+
+.login-card h1,
+.hero-panel h1 {
+  margin: 0.5rem 0 0.8rem;
+  line-height: 0.95;
+}
+
+.login-card h1 {
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+}
+
+.hero-panel h1 {
+  font-size: clamp(2rem, 4.5vw, 3.8rem);
+  max-width: 12ch;
+}
+
+.lede {
+  color: rgba(237, 242, 255, 0.78);
+  max-width: 56ch;
+}
+
+.login-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.login-form label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.login-form span {
+  color: rgba(237, 242, 255, 0.82);
+}
+
+.login-form input {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #edf2ff;
+  padding: 0.95rem 1rem;
+  outline: none;
+}
+
+.login-form button,
+.ghost-button,
+.table-row {
+  border: 0;
+  cursor: pointer;
+  transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
+}
+
+.login-form button {
+  border-radius: 999px;
+  padding: 0.95rem 1.2rem;
+  background: linear-gradient(135deg, #ff8a5b 0%, #ffbd73 100%);
+  color: #120e0b;
+  font-weight: 700;
+}
+
+.login-error,
+.error-banner {
+  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  background: rgba(255, 99, 132, 0.14);
+  color: #ffc8d1;
+}
+
+.dashboard-layout {
+  position: relative;
+  z-index: 1;
+  width: min(1320px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.5rem 0 3rem;
+}
+
+.hero-panel {
+  border-radius: 30px;
+  padding: 2rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.status-pill,
+.ghost-button {
+  border-radius: 999px;
+  padding: 0.72rem 1rem;
+}
+
+.status-pill {
+  background: rgba(109, 211, 206, 0.12);
+  border: 1px solid rgba(109, 211, 206, 0.24);
+  color: #97efe2;
+}
+
+.ghost-button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #edf2ff;
+}
+
+.stats-grid,
+.content-grid,
+.detail-cards {
+  display: grid;
+  gap: 1rem;
+}
+
+.stats-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.stat-card {
+  border-radius: 24px;
+  padding: 1.2rem;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: clamp(1.6rem, 2.5vw, 2.5rem);
+}
+
+.stat-card p {
+  margin: 0.45rem 0 0;
+  color: rgba(237, 242, 255, 0.66);
+}
+
+.content-grid {
+  grid-template-columns: 1.05fr 1fr 1fr;
+  margin-top: 1rem;
+  align-items: start;
+}
+
+.panel {
+  border-radius: 28px;
+  padding: 1.35rem;
+}
+
+.panel-tall {
+  grid-row: span 2;
+}
+
+.panel-wide {
+  grid-column: span 2;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.panel-header h2,
+.referrer-table h3 {
+  margin: 0.3rem 0 0;
+}
+
+.subtle {
+  color: rgba(237, 242, 255, 0.62);
+  font-size: 0.92rem;
+}
+
+.table-list,
+.mini-list,
+.referrer-table {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.table-row,
+.mini-row {
+  display: grid;
+  gap: 0.75rem;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+}
+
+.table-row {
+  width: 100%;
+  padding: 0.9rem;
+  grid-template-columns: auto 1fr auto;
+  color: inherit;
+  text-align: left;
+}
+
+.table-row.is-active,
+.table-row:hover,
+.ghost-button:hover,
+.login-form button:hover {
+  transform: translateY(-1px);
+}
+
+.table-row.is-active {
+  background: rgba(255, 138, 91, 0.16);
+}
+
+.table-row p,
+.mini-row span {
+  margin: 0;
+  color: rgba(237, 242, 255, 0.68);
+}
+
+.rank-badge {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.chart-frame {
+  height: 260px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 0.85fr 1.3fr 0.85fr;
+  gap: 1rem;
+}
+
+.detail-cards {
+  grid-template-columns: 1fr;
+}
+
+.detail-chart,
+.referrer-table {
+  min-height: 260px;
+}
+
+.mini-row {
+  padding: 0.85rem 0.95rem;
+  grid-template-columns: 1fr auto;
+}
+
+.mini-row strong {
+  font-size: 1rem;
+}
+
+.empty-state {
+  border-radius: 18px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(237, 242, 255, 0.66);
+}
+
+@media (max-width: 1100px) {
+  .stats-grid,
+  .content-grid,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-tall,
+  .panel-wide {
+    grid-row: auto;
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboard-layout {
+    width: min(100% - 1rem, 1320px);
+    padding: 1rem 0 2rem;
+  }
+
+  .hero-panel {
+    padding: 1.4rem;
+    flex-direction: column;
+  }
+
+  .hero-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .panel,
+  .stat-card,
+  .hero-panel,
+  .login-card {
+    border-radius: 22px;
+  }
+}

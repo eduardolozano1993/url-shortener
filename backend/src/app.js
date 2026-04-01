@@ -9,6 +9,7 @@ const app = express();
 const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
 const hasFrontendBuild = fs.existsSync(frontendDistPath);
 
+app.set("trust proxy", true);
 app.use(express.json({ limit: "10kb" }));
 
 if (hasFrontendBuild) {

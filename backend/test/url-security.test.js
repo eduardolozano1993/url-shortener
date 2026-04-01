@@ -14,6 +14,7 @@ function loadAppWithMocks() {
   clearModule("../src/features/urls/urlRoutes");
   clearModule("../src/cache/redisClient");
   clearModule("../src/features/urls/urlRepository");
+  clearModule("../src/queue/analyticsPublisher");
 
   const redisClient = require("../src/cache/redisClient");
   redisClient.connectRedis = async () => null;
@@ -32,9 +33,13 @@ function loadAppWithMocks() {
     originalUrl: "https://example.com/",
   });
 
+  const analyticsPublisher = require("../src/queue/analyticsPublisher");
+  analyticsPublisher.publishUrlClicked = async () => null;
+
   return {
     app: require("../src/app"),
     repository,
+    analyticsPublisher,
   };
 }
 
@@ -129,4 +134,30 @@ test("GET /:code rejects malformed codes before repository lookup", async () => 
   });
 
   assert.equal(lookupCalls, 0);
+});
+
+test("GET /:code redirects and publishes an analytics event", async () => {
+  const { app, analyticsPublisher } = loadAppWithMocks();
+  let publishCalls = 0;
+
+  analyticsPublisher.publishUrlClicked = async (req, url) => {
+    publishCalls += 1;
+    assert.equal(req.headers.referer, "https://referrer.test/article");
+    assert.equal(url.code, "abc123");
+    return { eventId: "evt-1" };
+  };
+
+  await withServer(app, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/abc123`, {
+      headers: {
+        referer: "https://referrer.test/article",
+      },
+      redirect: "manual",
+    });
+
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get("location"), "https://example.com/");
+  });
+
+  assert.equal(publishCalls, 1);
 });
